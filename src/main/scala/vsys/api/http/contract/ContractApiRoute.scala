@@ -27,11 +27,16 @@ import ContractApiRoute._
 
 @Path("/contract")
 @Api(value = "/contract")
-case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: UtxPool, allChannels: ChannelGroup, time: Time, state: StateReader)
+case class ContractApiRoute (settings: RestAPISettings,
+                             wallet: Wallet,
+                             utx: UtxPool,
+                             allChannels: ChannelGroup,
+                             time: Time,
+                             state: StateReader)
   extends ApiRoute with BroadcastRoute {
 
   override val route = pathPrefix("contract") {
-    register ~ content ~ info ~ tokenInfo ~ balance ~ execute ~ tokenId ~ vBalance ~ getContractData
+    register ~ content ~ info ~ tokenInfo ~ balance ~ execute ~ tokenId ~ vBalance ~ getContractData ~ lastToken
   }
 
   @Path("/register")
@@ -47,14 +52,13 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
       required = true,
       paramType = "body",
       dataType = "vsys.api.http.contract.RegisterContractRequest",
-      defaultValue = "{\n\t\"sender\": \"3Mx2afTZ2KbRrLNbytyzTtXukZvqEB8SkW7\",\n\t\"contract\": \"contract\",\n\t\"data\":\"data\",\n\t\"description\":\"5VECG3ZHwy\",\n\t\"fee\": 100000,\n\t\"feeScale\": 100\n}"
     )
   ))
-  @ApiResponses(Array(new ApiResponse(code = 200, message = "Json with response or error")))
+  @ApiResponses(Array(new ApiResponse(code = 200, message = "Successful Operation")))
   def register: Route = processRequest("register", (t: RegisterContractRequest) => doBroadcast(TransactionFactory.registerContract(t, wallet, time)))
 
   @Path("/vBalance/{contractId}")
-  @ApiOperation(value = "Contract balance", notes = "Get contract account v balance associated with contract id.", httpMethod = "GET")
+  @ApiOperation(value = "Contract balance", notes = "Get contract account **v balance** associated with `contractId`.", httpMethod = "GET", response = classOf[Balance])
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "contractId", value = "Contract ID", required = true, dataType = "string", paramType = "path")
   ))
@@ -70,8 +74,33 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
     ))).getOrElse(InvalidContractAddress)
   }
 
+  @Path("/lastTokenIndex/{contractId}")
+  @ApiOperation(value = "Last Token Index", notes = "Token contract last token index", httpMethod = "Get")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response with Last Token Index or error")
+  ))
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "contractId", value = "Contract ID", required = true, dataType = "string", paramType = "path")
+  ))
+  def lastToken: Route = (get & path("lastTokenIndex" / Segment)) { contractId =>
+    ByteStr.decodeBase58(contractId) match {
+      case Success(id) if ContractAccount.fromString(contractId).isRight => {
+        val lastTokenIndex = state.contractTokens(id) - 1
+        if (lastTokenIndex == -1) {
+          complete(CustomValidationError("No token generated in this contract"))
+        } else {
+          complete(TokenIndex(contractId, lastTokenIndex))
+        }
+      }
+      case _ => complete(InvalidContractAddress)
+    }
+  }
+
   @Path("/content/{contractId}")
-  @ApiOperation(value = "Contract content", notes = "Get contract content associated with a contract id.", httpMethod = "GET")
+  @ApiOperation(value = "Contract content", notes = "Get **contract content** associated with a `contractId`.", httpMethod = "GET")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response of the contract content or error")
+  ))
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "contractId", value = "Contract ID", required = true, dataType = "string", paramType = "path")
   ))
@@ -86,18 +115,24 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
     }
   }
 
-  @Path("data/{contractId}/{key}")
-  @ApiOperation(value = "Contract Data", notes = "Contract data by given contract ID and key (default numerical 0).", httpMethod = "Get", authorizations = Array(new Authorization("api_key")))
+  @Path("/data/{contractId}/{key}")
+  @ApiOperation(value = "Contract Data", notes = "Get **contract data** by given `contractId` and `key` (default numerical 0).", httpMethod = "Get", authorizations = Array(new Authorization("api_key")))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response of contract data or error")
+  ))
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "contractId", value = "Contract Account", required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "key", value = "Key", required = true, dataType = "string", paramType = "path")
   ))
-  def getContractData: Route = (get & withAuth & path("data" / Segment / Segment)) { (contractId, key) =>
+  def getContractData: Route = (get & path("data" / Segment / Segment)) { (contractId, key) =>
     complete(dataJson(contractId, key))
   }
 
   @Path("/info/{contractId}")
-  @ApiOperation(value = "Info", notes = "Get contract info associated with a contract id.", httpMethod = "GET")
+  @ApiOperation(value = "Info", notes = "Get **contract info** associated with a `contractId`.", httpMethod = "GET")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response of the contract info or error")
+  ))
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "contractId", value = "Contract ID", required = true, dataType = "string", paramType = "path")
   ))
@@ -130,20 +165,32 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
     }
   }
 
-  private def typeFromBytes(bytes: ByteStr): String = bytes match {
-      case ContractPermitted.contract.bytes => "TokenContractWithSplit"
-      case ContractPermitted.contractWithoutSplit.bytes => "TokenContract"
-      case ContractDepositWithdraw.contract.bytes => "DepositWithdrawContract"
-      case ContractDepositWithdrawProductive.contract.bytes => "ProductiveDepositWithdrawContract"
-      case ContractSystem.contract.bytes => "SystemContract"
-      case ContractLock.contract.bytes => "LockContract"
-      case ContractNonFungible.contract.bytes => "NonFungibleContract"
-      case ContractPaymentChannel.contract.bytes => "PaymentChannelContract"
-      case _ => "GeneralContract"
-    }
+  private val contractType: Map[ByteStr, String] = Map(
+    ContractPermitted.contract.bytes -> "TokenContractWithSplit",
+    ContractPermitted.contractWithoutSplit.bytes -> "TokenContract",
+    ContractSystem.contract.bytes -> "SystemContract",
+    ContractLock.contract.bytes -> "LockContract",
+    ContractNonFungible.contract.bytes -> "NonFungibleContract",
+    ContractPaymentChannel.contract.bytes -> "PaymentChannelContract",
+    ContractAtomicSwap.contract.bytes -> "AtomicSwapContract",
+    ContractVSwap.contract.bytes -> "VSwapContract",
+    ContractVOption.contract.bytes -> "VOptionContract",
+    ContractVStableSwap.contract.bytes -> "VStableSwapContract",
+    ContractVEscrow.contract.bytes -> "ESCROWContract",
+    ContractTokenV2.contractTokenWhiteList.bytes -> "TokenContractWithWhitelist",
+    ContractTokenV2.contractTokenBlackList.bytes -> "TokenContractWithBlacklist",
+    ContractNonFungibleV2.contractNFTWhitelist.bytes -> "NFTContractWithWhitelist",
+    ContractNonFungibleV2.contractNFTBlacklist.bytes -> "NFTContractWithBlacklist"
+  )
+
+  private def typeFromBytes(bytes: ByteStr): String =
+    contractType.getOrElse(bytes, "GeneralContract")
 
   @Path("/tokenInfo/{tokenId}")
-  @ApiOperation(value = "Token's Info", notes = "Token's info by given token", httpMethod = "Get")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response of token info or error")
+  ))
+  @ApiOperation(value = "Token's Info", notes = "Get the **token's info** by given `tokenId`", httpMethod = "Get")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "tokenId", value = "Token ID", required = true, dataType = "string", paramType = "path")
   ))
@@ -178,8 +225,11 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
     }
   }
 
-  @Path("balance/{address}/{tokenId}")
-  @ApiOperation(value = "Token's balance", notes = "Account's balance by given token", httpMethod = "Get")
+  @Path("/balance/{address}/{tokenId}")
+  @ApiOperation(value = "Token's balance", notes = "Get the **balance** of a specified `tokenId` by a given `address`", httpMethod = "Get")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response of the token balance or error")
+  ))
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "address", value = "Address", required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "tokenId", value = "Token ID", required = true, dataType = "string", paramType = "path")
@@ -246,15 +296,17 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
       value = "Json with data",
       required = true,
       paramType = "body",
-      dataType = "vsys.api.http.contract.ExecuteContractFunctionRequest",
-      defaultValue = "{\n\t\"sender\": \"3Mx2afTZ2KbRrLNbytyzTtXukZvqEB8SkW7\",\n\t\"contractId\": \"contractId\",\n\t\"funcIdx\": \"0\",\n\t\"data\":\"data\",\n\t\"description\":\"5VECG3ZHwy\",\n\t\"fee\": 100000,\n\t\"feeScale\": 100\n}"
+      dataType = "vsys.api.http.contract.ExecuteContractFunctionRequest"
     )
   ))
-  @ApiResponses(Array(new ApiResponse(code = 200, message = "Json with response or error")))
+  @ApiResponses(Array(new ApiResponse(code = 200, message = "Successful Operation")))
   def execute: Route = processRequest("execute", (t: ExecuteContractFunctionRequest) => doBroadcast(TransactionFactory.executeContractFunction(t, wallet, time)))
 
-  @Path("contractId/{contractId}/tokenIndex/{tokenIndex}")
-  @ApiOperation(value = "Token's Id", notes = "Token Id from contract Id and token index", httpMethod = "Get")
+  @Path("/contractId/{contractId}/tokenIndex/{tokenIndex}")
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Json response of a token id or error")
+  ))
+  @ApiOperation(value = "Token's Id", notes = "Get the **token Id** from the specified `contractId` and `tokenIndex`", httpMethod = "Get")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "contractId", value = "Contract ID", required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "tokenIndex", value = "Token Index", required = true, dataType = "integer", paramType = "path")
@@ -283,7 +335,6 @@ case class ContractApiRoute (settings: RestAPISettings, wallet: Wallet, utx: Utx
       }
     }
   }
-
 }
 
 object ContractApiRoute {
@@ -291,5 +342,9 @@ object ContractApiRoute {
   case class Balance(address: String, confirmations: Int, balance: Long)
 
   implicit val balanceFormat: Format[Balance] = Json.format
+
+  case class TokenIndex(contractId: String, lastTokenIndex: Int)
+
+  implicit val tokenIndexFormat: Format[TokenIndex] = Json.format
 
 }

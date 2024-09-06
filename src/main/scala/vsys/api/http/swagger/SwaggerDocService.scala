@@ -7,11 +7,11 @@ import com.github.swagger.akka.SwaggerHttpService
 import vsys.Version
 import vsys.settings.RestAPISettings
 import io.swagger.util.{Json, Yaml}
-import io.swagger.models.{Swagger, Scheme, Path}
+import io.swagger.models.{Path, Scheme, Swagger}
 import io.swagger.models.auth.{ApiKeyAuthDefinition, In}
 import vsys.utils.ScorexLogging
-import scala.collection.immutable.Map
 
+import scala.collection.immutable.Map
 import scala.util.control.NonFatal
 import scala.collection.JavaConverters._
 
