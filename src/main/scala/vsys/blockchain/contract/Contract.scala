@@ -93,7 +93,8 @@ object Contract extends ScorexLogging {
     ContractTokenV2.contractTokenWhiteList.bytes.arr,
     ContractTokenV2.contractTokenBlackList.bytes.arr,
     ContractNonFungibleV2.contractNFTWhitelist.bytes.arr,
-    ContractNonFungibleV2.contractNFTBlacklist.bytes.arr
+    ContractNonFungibleV2.contractNFTBlacklist.bytes.arr,
+    ContractAssetSwap.contract.bytes.arr,
   )
 
   def buildContract(languageCode: Array[Byte], languageVersion: Array[Byte],

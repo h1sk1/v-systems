@@ -49,6 +49,9 @@ object CommonValidation {
     c == ContractAtomicSwap.contract || c == ContractVEscrow.contract || c == ContractVOption.contract || c == ContractVStableSwap.contract || c == ContractVSwap.contract ||
     c == ContractTokenV2.contractTokenBlackList || c == ContractTokenV2.contractTokenWhiteList || c == ContractNonFungibleV2.contractNFTBlacklist || c == ContractNonFungibleV2.contractNFTWhitelist
 
+  private def isAssetExchangeContracts(c: Contract): Boolean =
+    c == ContractAssetSwap.contract
+
   private def disallowInvalidContractTxs[T <: Transaction](settings: FunctionalitySettings, h: Int, tx: T, c: Contract): Either[ValidationError, T] = {
     if (h <= settings.allowContractTransactionAfterHeight)
       Left(GenericError(s"must not appear before height=${settings.allowContractTransactionAfterHeight}"))
@@ -56,7 +59,7 @@ object CommonValidation {
       Left(GenericError(s"deposit withdraw contracts must not appear before height=${settings.allowDepositWithdrawContractAfterHeight}"))
     else if (h <= settings.allowExchangeContractAfterHeight && !isTokenContracts(c) && !isDepositWithdrawContracts(c))
       Left(GenericError(s"exchange contracts must not appear before height=${settings.allowExchangeContractAfterHeight}"))
-    else if (isTokenContracts(c) || isDepositWithdrawContracts(c) || isExchangeContracts(c))
+    else if (isTokenContracts(c) || isDepositWithdrawContracts(c) || isExchangeContracts(c) || isAssetExchangeContracts(c))
       Right(tx)
     else Left(GenericError(s"unsupported contracts"))
   }

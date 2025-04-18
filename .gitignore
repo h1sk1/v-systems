@@ -54,3 +54,6 @@ src/test/**/.DS_Store
 .bloop/
 .ammonite/
 project/metals.sbt
+
+# sbt
+.bsp/
