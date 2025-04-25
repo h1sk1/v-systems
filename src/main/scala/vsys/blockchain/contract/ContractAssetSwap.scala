@@ -54,8 +54,12 @@ object ContractAssetSwap {
 
   // Deposit Trigger
   val depositId: Short = 1
-  val depositPara: Seq[String] = Seq("depositor", "amount", "tokenId",
-                                     "tokenIdWithAddress")
+  val depositPara: Seq[String] = Seq(
+    "depositor", // 0
+    "amount", // 1
+    "tokenId", // 2
+    "tokenIdWithAddress" // 3
+  )
   val depositDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.Amount.id.toByte, DataType.TokenId.id.toByte)
   val depositTriggerOpcs: Seq[Array[Byte]] = Seq(
     assertCaller ++ Array(0.toByte),
@@ -79,14 +83,24 @@ object ContractAssetSwap {
 
   // Create Swap Function
   val createSwapId: Short = 0
-  val createSwapPara: Seq[String] = Seq("tokenAAddress", "tokenAId", "tokenAAmount", "tokenBAddress",
-    "tokenBId", "tokenBAmount", "expiredTime", "tokenIdWithAddress", "txId", "valueTrue")
-  val createSwapDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.Amount.id.toByte, DataType.TokenId.id.toByte,
-    DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte, DataType.Amount.id.toByte, DataType.Timestamp.id.toByte)
+  val createSwapPara: Seq[String] = Seq(
+    "tokenAAddress", // 0
+    "tokenAId", // 1
+    "tokenAAmount", // 2
+    "tokenBAddress", // 3
+    "tokenBId", // 4
+    "tokenBAmount", // 5
+    "expiredTime", // 6
+    "tokenIdWithAddress", // 7
+    "txId", // 8
+    "valueTrue" // 9
+  )
+  val createSwapDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.TokenId.id.toByte, DataType.Amount.id.toByte,
+    DataType.Address.id.toByte, DataType.TokenId.id.toByte, DataType.Amount.id.toByte, DataType.Timestamp.id.toByte)
   val createSwapFunctionOpcs: Seq[Array[Byte]] = Seq(
     assertCaller ++ Array(0.toByte),
     basicConcat ++ Array(1.toByte, 0.toByte, 7.toByte),
-    cdbvMapValMinus ++ Array(tokenBalanceMap.index, 7.toByte, 1.toByte),
+    cdbvMapValMinus ++ Array(tokenBalanceMap.index, 7.toByte, 2.toByte),
     loadTransactionId ++ Array(8.toByte),
     cdbvMapSet ++ Array(tokenAAddressMap.index, 8.toByte, 0.toByte),
     cdbvMapSet ++ Array(tokenAIdMap.index, 8.toByte, 1.toByte),
@@ -103,10 +117,24 @@ object ContractAssetSwap {
 
   // Finish Swap Function
   val finishSwapId: Short = 1
-  val finishSwapPara: Seq[String] = Seq("txId", "tokenBAddress", "swapStatus", "currentTime", 
-    "swapExpiredTime", "compareResult", "tokenAAdress", "tokenAId", "tokenAAmount", 
-    "tokenBId", "tokenBAmount", "destroyTokenBIdWithAddressB",
-    "receiveTokenBIdWithAddressA", "receiveTokenAIdWithAddressB", "valueFalse")
+  val finishSwapPara: Seq[String] = Seq(
+    "txId", // 0
+    "tokenBAddress", // 1
+    "swapStatus", // 2
+    "currentTime", // 3
+    "swapExpiredTime", // 4
+    "compareResult", // 5
+    "tokenBId", // 6
+    "tokenBAmount", // 7
+    "destroyTokenBIdWithAddressB", // 8
+    "tokenAAdress", // 9
+    "tokenAId", // 10
+    "tokenAAmount", // 11
+    "receiveTokenBIdWithAddressA", // 12
+    "receiveTokenAIdWithAddressB", // 13
+    "valueFalse" // 14
+  )
+  
   val finishSwapDataType: Array[Byte] = Array(DataType.ShortBytes.id.toByte)
   val finishSwapFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrMapGet ++ Array(tokenBAddressMap.index, 0.toByte, 1.toByte),
@@ -117,17 +145,17 @@ object ContractAssetSwap {
     cdbvrMapGet ++ Array(swapExpiredTimeMap.index, 0.toByte, 4.toByte),
     compareGreater ++ Array(4.toByte, 3.toByte, 5.toByte),
     assertTrue ++ Array(5.toByte),
-    cdbvrMapGet ++ Array(tokenBIdMap.index, 0.toByte, 9.toByte),
-    cdbvrMapGet ++ Array(tokenBAmountMap.index, 0.toByte, 10.toByte),
-    basicConcat ++ Array(9.toByte, 1.toByte, 11.toByte),
-    cdbvMapValMinus ++ Array(tokenBalanceMap.index, 11.toByte, 10.toByte),
-    cdbvrMapGet ++ Array(tokenAAddressMap.index, 0.toByte, 6.toByte),
-    cdbvrMapGet ++ Array(tokenAIdMap.index, 0.toByte, 7.toByte),
-    cdbvrMapGet ++ Array(tokenAAmountMap.index, 0.toByte, 8.toByte),
-    basicConcat ++ Array(9.toByte, 6.toByte, 12.toByte),
-    cdbvMapValAdd ++ Array(tokenBalanceMap.index, 12.toByte, 10.toByte),
-    basicConcat ++ Array(7.toByte, 1.toByte, 13.toByte),
-    cdbvMapValAdd ++ Array(tokenBalanceMap.index, 13.toByte, 8.toByte),
+    cdbvrMapGet ++ Array(tokenBIdMap.index, 0.toByte, 6.toByte), // token B id
+    cdbvrMapGet ++ Array(tokenBAmountMap.index, 0.toByte, 7.toByte), // token B amount
+    basicConcat ++ Array(6.toByte, 1.toByte, 8.toByte), // destroyTokenBIdWithAddressB
+    cdbvMapValMinus ++ Array(tokenBalanceMap.index, 8.toByte, 7.toByte),
+    cdbvrMapGet ++ Array(tokenAAddressMap.index, 0.toByte, 9.toByte), // token A address
+    cdbvrMapGet ++ Array(tokenAIdMap.index, 0.toByte, 10.toByte), // token A id
+    cdbvrMapGet ++ Array(tokenAAmountMap.index, 0.toByte, 11.toByte), // token A amount
+    basicConcat ++ Array(6.toByte, 9.toByte, 12.toByte), // receiveTokenBIdWithAddressA
+    cdbvMapValAdd ++ Array(tokenBalanceMap.index, 12.toByte, 7.toByte),
+    basicConcat ++ Array(10.toByte, 1.toByte, 13.toByte), // receiveTokenAIdWithAddressB
+    cdbvMapValAdd ++ Array(tokenBalanceMap.index, 13.toByte, 11.toByte),
     basicConstantGet ++ DataEntry(Array(0.toByte), DataType.Boolean).bytes ++ Array(14.toByte),
     cdbvMapSet ++ Array(swapStatusMap.index, 0.toByte, 14.toByte)
   )
@@ -136,9 +164,18 @@ object ContractAssetSwap {
 
   // Expire Withdraw Function
   val expireWithdrawId: Short = 2
-  val expireWithdrawPara: Seq[String] = Seq("txId", "tokenAAddress", "swapStatus", "currentTime", 
-    "swapExpiredTime", "compareResult", "tokenAId", "tokenAAmount", 
-    "tokenIdWithAddress", "valueFalse")
+  val expireWithdrawPara: Seq[String] = Seq(
+    "txId", // 0
+    "tokenAAddress", // 1
+    "swapStatus", // 2
+    "currentTime", // 3
+    "swapExpiredTime", // 4
+    "compareResult", // 5
+    "tokenAId", // 6
+    "tokenAAmount", // 7
+    "tokenIdWithAddress", // 8
+    "valueFalse" // 9
+  )
   val expireWithdrawDataType: Array[Byte] = Array(DataType.ShortBytes.id.toByte)
   val expireWithdrawFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrMapGet ++ Array(tokenAAddressMap.index, 0.toByte, 1.toByte),
