@@ -50,7 +50,7 @@ object CommonValidation {
     c == ContractTokenV2.contractTokenBlackList || c == ContractTokenV2.contractTokenWhiteList || c == ContractNonFungibleV2.contractNFTBlacklist || c == ContractNonFungibleV2.contractNFTWhitelist
 
   private def isAssetExchangeContracts(c: Contract): Boolean =
-    c == ContractAssetSwap.contract
+    c == ContractAssetSwap.contract || c == ContractAssetSwap.contractWithoutReceiver
 
   private def disallowInvalidContractTxs[T <: Transaction](settings: FunctionalitySettings, h: Int, tx: T, c: Contract): Either[ValidationError, T] = {
     if (h <= settings.allowContractTransactionAfterHeight)

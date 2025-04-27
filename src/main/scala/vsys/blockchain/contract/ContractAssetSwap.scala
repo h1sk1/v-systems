@@ -15,6 +15,15 @@ object ContractAssetSwap {
     Seq(triggerTextual, descriptorTextual, stateVarTextual, stateMapTextual)
   ).explicitGet()
 
+  lazy val contractWithoutReceiver: Contract = Contract.buildContract(Deser.serilizeString("vdds"), Ints.toByteArray(2),
+    Seq(initTrigger, depositTrigger, withdrawTrigger),
+    Seq(createSwapWithoutReceiverFunc, finishSwapWithoutReceiverFunc, expireWithdrawFunc, reduceTokenBAmountFunc),
+    Seq(),
+    Seq(tokenBalanceMap.arr, tokenAAddressMap.arr, tokenAIdMap.arr, tokenAAmountMap.arr, swapExpiredTimeMap.arr,
+        tokenBAddressMap.arr, tokenBIdMap.arr, tokenBAmountMap.arr, swapStatusMap.arr),
+    Seq(triggerTextual, descriptorWithoutReceiverTextual, stateVarTextual, stateMapTextual)
+  ).explicitGet()
+
   // StateVar
   val stateVarName = List()
   lazy val stateVarTextual: Array[Byte] = Deser.serializeArrays(stateVarName.map(x => Deser.serilizeString(x)))
@@ -115,6 +124,37 @@ object ContractAssetSwap {
   lazy val createSwapFunc: Array[Byte] = getFunctionBytes(createSwapId, publicFuncType, nonReturnType, createSwapDataType, createSwapFunctionOpcs)
   val createSwapTextualBytes: Array[Byte] = textualFunc("createSwap", Seq(), createSwapPara)
 
+  // Create Swap Function without Receiver
+  val createSwapWithoutReceiverPara: Seq[String] = Seq(
+    "tokenAAddress", // 0
+    "tokenAId", // 1
+    "tokenAAmount", // 2
+    "tokenBId", // 3
+    "tokenBAmount", // 4
+    "expiredTime", // 5
+    "tokenIdWithAddress", // 6
+    "txId", // 7
+    "valueTrue" // 8
+  )
+  val createSwapWithoutReceiverDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.TokenId.id.toByte, DataType.Amount.id.toByte,
+    DataType.TokenId.id.toByte, DataType.Amount.id.toByte, DataType.Timestamp.id.toByte)
+  val createSwapWithoutReceiverFunctionOpcs: Seq[Array[Byte]] = Seq(
+    assertCaller ++ Array(0.toByte),
+    basicConcat ++ Array(1.toByte, 0.toByte, 6.toByte),
+    cdbvMapValMinus ++ Array(tokenBalanceMap.index, 6.toByte, 2.toByte),
+    loadTransactionId ++ Array(7.toByte),
+    cdbvMapSet ++ Array(tokenAAddressMap.index, 7.toByte, 0.toByte),
+    cdbvMapSet ++ Array(tokenAIdMap.index, 7.toByte, 1.toByte),
+    cdbvMapSet ++ Array(tokenAAmountMap.index, 7.toByte, 2.toByte),
+    cdbvMapSet ++ Array(tokenBIdMap.index, 7.toByte, 3.toByte),
+    cdbvMapSet ++ Array(tokenBAmountMap.index, 7.toByte, 4.toByte),
+    cdbvMapSet ++ Array(swapExpiredTimeMap.index, 7.toByte, 5.toByte),
+    basicConstantGet ++ DataEntry(Array(1.toByte), DataType.Boolean).bytes ++ Array(8.toByte),
+    cdbvMapSet ++ Array(swapStatusMap.index, 7.toByte, 8.toByte)
+  )
+  lazy val createSwapWithoutReceiverFunc: Array[Byte] = getFunctionBytes(createSwapId, publicFuncType, nonReturnType, createSwapWithoutReceiverDataType, createSwapWithoutReceiverFunctionOpcs)
+  val createSwapWithoutReceiverTextualBytes: Array[Byte] = textualFunc("createSwap", Seq(), createSwapWithoutReceiverPara)
+
   // Finish Swap Function
   val finishSwapId: Short = 1
   val finishSwapPara: Seq[String] = Seq(
@@ -162,6 +202,51 @@ object ContractAssetSwap {
   lazy val finishSwapFunc: Array[Byte] = getFunctionBytes(finishSwapId, publicFuncType, nonReturnType, finishSwapDataType, finishSwapFunctionOpcs)
   val finishSwapTextualBytes: Array[Byte] = textualFunc("finishSwap", Seq(), finishSwapPara)
 
+  // Finish Swap Function without Receiver
+  val finishSwapWithoutReceiverPara: Seq[String] = Seq(
+    "txId", // 0
+    "swapStatus", // 1
+    "currentTime", // 2
+    "swapExpiredTime", // 3
+    "compareResult", // 4
+    "caller", // 5
+    "tokenBId", // 6
+    "tokenBAmount", // 7
+    "destroyTokenBIdWithAddressB", // 8
+    "tokenAAdress", // 9
+    "tokenAId", // 10
+    "tokenAAmount", // 11
+    "receiveTokenBIdWithAddressA", // 12
+    "receiveTokenAIdWithAddressB", // 13
+    "valueFalse" // 14
+  )
+  val finishSwapWithoutReceiverDataType: Array[Byte] = Array(DataType.ShortBytes.id.toByte)
+  val finishSwapWithoutReceiverFunctionOpcs: Seq[Array[Byte]] = Seq(
+    cdbvrMapGet ++ Array(swapStatusMap.index, 0.toByte, 1.toByte),
+    assertTrue ++ Array(1.toByte),
+    loadTimestamp ++ Array(2.toByte),
+    cdbvrMapGet ++ Array(swapExpiredTimeMap.index, 0.toByte, 3.toByte),
+    compareGreater ++ Array(3.toByte, 2.toByte, 4.toByte),
+    assertTrue ++ Array(4.toByte),
+    loadCaller ++ Array(5.toByte),
+    cdbvrMapGet ++ Array(tokenBIdMap.index, 0.toByte, 6.toByte), // token B id
+    cdbvrMapGet ++ Array(tokenBAmountMap.index, 0.toByte, 7.toByte), // token B amount
+    basicConcat ++ Array(6.toByte, 5.toByte, 8.toByte), // destroyTokenBIdWithAddressB
+    cdbvMapValMinus ++ Array(tokenBalanceMap.index, 8.toByte, 7.toByte),
+    cdbvrMapGet ++ Array(tokenAAddressMap.index, 0.toByte, 9.toByte), // token A address
+    cdbvrMapGet ++ Array(tokenAIdMap.index, 0.toByte, 10.toByte), // token A id
+    cdbvrMapGet ++ Array(tokenAAmountMap.index, 0.toByte, 11.toByte), // token A amount
+    basicConcat ++ Array(6.toByte, 9.toByte, 12.toByte), // receiveTokenBIdWithAddressA
+    cdbvMapValAdd ++ Array(tokenBalanceMap.index, 12.toByte, 7.toByte),
+    basicConcat ++ Array(10.toByte, 5.toByte, 13.toByte), // receiveTokenAIdWithAddressB
+    cdbvMapValAdd ++ Array(tokenBalanceMap.index, 13.toByte, 11.toByte),
+    basicConstantGet ++ DataEntry(Array(0.toByte), DataType.Boolean).bytes ++ Array(14.toByte),
+    cdbvMapSet ++ Array(swapStatusMap.index, 0.toByte, 14.toByte)
+  )
+  lazy val finishSwapWithoutReceiverFunc: Array[Byte] = getFunctionBytes(finishSwapId, publicFuncType, nonReturnType, finishSwapWithoutReceiverDataType, finishSwapWithoutReceiverFunctionOpcs)
+  val finishSwapWithoutReceiverTextualBytes: Array[Byte] = textualFunc("finishSwap", Seq(), finishSwapWithoutReceiverPara)
+
+
   // Expire Withdraw Function
   val expireWithdrawId: Short = 2
   val expireWithdrawPara: Seq[String] = Seq(
@@ -196,7 +281,41 @@ object ContractAssetSwap {
   lazy val expireWithdrawFunc: Array[Byte] = getFunctionBytes(expireWithdrawId, publicFuncType, nonReturnType, expireWithdrawDataType, expireWithdrawFunctionOpcs)
   val expireWithdrawTextualBytes: Array[Byte] = textualFunc("expireWithdraw", Seq(), expireWithdrawPara)
 
+  // Reduce token B amount
+  val reduceTokenBAmountId: Short = 3
+  val reduceTokenBAmountPara: Seq[String] = Seq(
+    "txId", // 0
+    "newTokenBAmount", // 1
+    "tokenAAddress", // 2
+    "swapStatus", // 3
+    "currentTime", // 4
+    "swapExpiredTime", // 5
+    "compareResult", // 6
+    "tokenBId", // 7
+    "tokenBAmount", // 8
+    "oldTokenBAmountGreater", // 9
+  )
+  val reduceTokenBAmountDataType: Array[Byte] = Array(DataType.ShortBytes.id.toByte, DataType.Amount.id.toByte)
+  val reduceTokenBAmountFunctionOpcs: Seq[Array[Byte]] = Seq(
+    cdbvrMapGet ++ Array(tokenAAddressMap.index, 0.toByte, 2.toByte),
+    assertCaller ++ Array(2.toByte),
+    cdbvrMapGet ++ Array(swapStatusMap.index, 0.toByte, 3.toByte),
+    assertTrue ++ Array(3.toByte),
+    loadTimestamp ++ Array(4.toByte),
+    cdbvrMapGet ++ Array(swapExpiredTimeMap.index, 0.toByte, 5.toByte),
+    compareGreater ++ Array(5.toByte, 4.toByte, 6.toByte),
+    assertTrue ++ Array(6.toByte),
+    cdbvrMapGet ++ Array(tokenBIdMap.index, 0.toByte, 7.toByte), // token B id
+    cdbvrMapGet ++ Array(tokenBAmountMap.index, 0.toByte, 8.toByte), // token B amount
+    compareGreater ++ Array(8.toByte, 1.toByte, 9.toByte),
+    assertTrue ++ Array(9.toByte),
+    cdbvMapSet ++ Array(tokenBAmountMap.index, 0.toByte, 1.toByte)
+  )
+  lazy val reduceTokenBAmountFunc: Array[Byte] = getFunctionBytes(reduceTokenBAmountId, publicFuncType, nonReturnType, reduceTokenBAmountDataType, reduceTokenBAmountFunctionOpcs)
+  val reduceTokenBAmountTextualBytes: Array[Byte] = textualFunc("reduceTokenBAmount", Seq(), reduceTokenBAmountPara)
+
   // Generate Textual
   lazy val triggerTextual: Array[Byte] = Deser.serializeArrays(Seq(initTextualBytes, depositTextualBytes, withdrawTextualBytes))
   lazy val descriptorTextual: Array[Byte] = Deser.serializeArrays(Seq(createSwapTextualBytes, finishSwapTextualBytes, expireWithdrawTextualBytes))
+  lazy val descriptorWithoutReceiverTextual: Array[Byte] = Deser.serializeArrays(Seq(createSwapWithoutReceiverTextualBytes, finishSwapWithoutReceiverTextualBytes, expireWithdrawTextualBytes, reduceTokenBAmountTextualBytes))
 }
