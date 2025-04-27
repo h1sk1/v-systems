@@ -13,6 +13,7 @@ trait AssetSwapContractGen {
 
   val createSwapIndex: Short = 0
   val finishSwapIndex: Short = 1
+  val expireWithdrawIndex: Short = 2
   
   def assetSwapContractGen(): Gen[Contract] = ContractAssetSwap.contract
 
@@ -54,6 +55,20 @@ trait AssetSwapContractGen {
     fee: Long,
     ts: Long): Gen[ExecuteContractFunctionTransaction] = {
     val id: Short = finishSwapIndex
+    for {
+      data: Seq[DataEntry] <- ContractGenHelper.dataListGen(data, dataType)
+    } yield ExecuteContractFunctionTransaction.create(signer, contractId, id, data, attachment, fee, feeScale, ts).explicitGet()
+  }
+
+  def expireWithdrawAssetSwapContractDataStackGen(
+    signer: PrivateKeyAccount,
+    contractId: ContractAccount,
+    data: Seq[Array[Byte]],
+    dataType: Seq[DataType.DataTypeVal[_]],
+    attachment: Array[Byte],
+    fee: Long,
+    ts: Long): Gen[ExecuteContractFunctionTransaction] = {
+    val id: Short = expireWithdrawIndex
     for {
       data: Seq[DataEntry] <- ContractGenHelper.dataListGen(data, dataType)
     } yield ExecuteContractFunctionTransaction.create(signer, contractId, id, data, attachment, fee, feeScale, ts).explicitGet()
