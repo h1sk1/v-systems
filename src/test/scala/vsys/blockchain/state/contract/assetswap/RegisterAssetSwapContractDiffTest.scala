@@ -67,4 +67,47 @@ class RegisterAssetSwapContractDiffTest extends PropSpec
       }
     }
   }
+
+  val preconditionAndBuildAssetSwapWithoutReceiverContract: Gen[(Array[Byte], Array[Byte], Seq[Array[Byte]],
+    Seq[Array[Byte]], Seq[Array[Byte]], Seq[Array[Byte]], Seq[Array[Byte]])] = for {
+    langCode <- ContractGenHelper.languageCodeGen(languageCode)
+    langVer <- ContractGenHelper.languageVersionGen(languageVersion)
+    init <- Gen.const(ContractAssetSwap.contractWithoutReceiver.trigger)
+    descriptor <- Gen.const(ContractAssetSwap.contractWithoutReceiver.descriptor)
+    stateVar <- Gen.const(ContractAssetSwap.contractWithoutReceiver.stateVar)
+    stateMap <- Gen.const(ContractAssetSwap.contractWithoutReceiver.stateMap)
+    textual <- Gen.const(ContractAssetSwap.contractWithoutReceiver.textual)
+  } yield (langCode, langVer, init, descriptor, stateVar, stateMap, textual)
+
+  property("register asset-swap contract without receiver build doesn't break invariant"){
+    forAll(preconditionAndBuildAssetSwapWithoutReceiverContract) { case (langCode, langVer, init, descriptor, stateVar, stateMap, textual) =>
+      Contract.buildContract(langCode, langVer, init, descriptor, stateVar, stateMap, textual) shouldBe an[Right[_, _]]
+    }
+  }
+
+  val validpWithoutReceiverContract: Gen[Contract] = assetSwapWithoutReceiverContractGen()
+  val preconditionsAndRegWithoutReceiverContractTest: Gen[(GenesisTransaction, RegisterContractTransaction)] = for {
+    (master, ts, fee) <- ContractGenHelper.basicContractTestGen()
+    genesis <- genesisAssetSwapContractGen(master, ts)
+    contract <- validpWithoutReceiverContract
+    description <- validDescStringGen
+    create <- registerAssetSwapContractGen(master, contract, description, fee + 10000000000L, ts + 1)
+  } yield (genesis, create)
+
+  property("register asset-swap contract without receiver transaction doesn't break invariant") {
+    forAll(preconditionsAndRegWithoutReceiverContractTest) { case (genesis, reg: RegisterContractTransaction) =>
+      assertDiffAndState(Seq(TestBlock.create(Seq(genesis))), TestBlock.create(Seq(reg))) { (blockDiff, newState) =>
+        val totalPortfolioDiff: Portfolio = Monoid.combineAll(blockDiff.txsDiff.portfolios.values)
+        totalPortfolioDiff.balance shouldBe -reg.transactionFee
+        totalPortfolioDiff.effectiveBalance shouldBe -reg.transactionFee
+        val master = reg.proofs.firstCurveProof.explicitGet().publicKey
+        val contractId = reg.contractId.bytes
+
+        val (_, masterTxs) = newState.accountTransactionIds(master, 2, 0)
+        masterTxs.size shouldBe 2 // genesis, reg
+        newState.contractTokens(contractId) shouldBe 0
+        newState.contractContent(contractId) shouldEqual Some((2, reg.id, ContractAssetSwap.contractWithoutReceiver))
+      }
+    }
+  }
 }

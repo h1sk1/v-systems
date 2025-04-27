@@ -17,6 +17,8 @@ trait AssetSwapContractGen {
   
   def assetSwapContractGen(): Gen[Contract] = ContractAssetSwap.contract
 
+  def assetSwapWithoutReceiverContractGen(): Gen[Contract] = ContractAssetSwap.contractWithoutReceiver
+
   def genesisAssetSwapContractGen(
     rep: PrivateKeyAccount,
     ts: Long): Gen[GenesisTransaction] =
