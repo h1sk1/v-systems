@@ -1,7 +1,7 @@
 package vsys.blockchain.state.contract.assetswap
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
-import org.scalacheck.Gen
+import org.scalacheck.{Gen, Shrink}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import vsys.blockchain.block.TestBlock
@@ -22,7 +22,9 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
   with TransactionGen
   with AssetSwapContractGen
   with AssetSwapFunctionHelperGen {
-    
+
+  private implicit def noShrink[A]: Shrink[A] = Shrink(_ => Stream.empty)
+
   val preconditionsAssetSwapContractAndWithdrawToken: Gen[(
     GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction, RegisterContractTransaction,
