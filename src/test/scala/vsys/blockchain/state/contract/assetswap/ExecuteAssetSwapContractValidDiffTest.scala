@@ -775,6 +775,17 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 20L // swap token B amount
         newState.contractNumInfo(userTokenABalanceKey) shouldBe 10L // swap token A amount
         newState.contractNumInfo(userTokenBBalanceKey) shouldBe 1000L - 20L // original balance - swap token B amount
+
+        val contractStateMapKeys = getAssetSwapContractStateMapKeys(assetSwapWithoutReceiverContractId, createSwap.id.arr)
+
+        newState.contractInfo(contractStateMapKeys(0)) shouldEqual Some(DataEntry.create(masterBytes, DataType.Address).right.get) // token A address
+        newState.contractInfo(contractStateMapKeys(1)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token A id
+        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(10L), DataType.Amount).right.get) // token A amount
+        newState.contractInfo(contractStateMapKeys(3)) shouldEqual Some(DataEntry.create(Longs.toByteArray(genesis.timestamp + 100), DataType.Timestamp).right.get) // expiration time
+        // newState.contractInfo(contractStateMapKeys(4)) shouldEqual Some(DataEntry.create(userBytes, DataType.Address).right.get) // token B address (Asset Swap without receiver contract does not have token B address)
+        newState.contractInfo(contractStateMapKeys(5)) shouldEqual Some(DataEntry.create(tokenBTokenId, DataType.TokenId).right.get) // token B id
+        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(20L), DataType.Amount).right.get) // token B amount
+        newState.contractInfo(contractStateMapKeys(7)) shouldEqual Some(DataEntry.create(Array(0.toByte), DataType.Boolean).right.get) // swap status
       }
     }
   }
