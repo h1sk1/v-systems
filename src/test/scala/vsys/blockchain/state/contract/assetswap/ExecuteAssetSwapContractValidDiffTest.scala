@@ -499,6 +499,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     }
   }
 
+  // Asset Swap Without Receiver Contract
   
   val preconditionsAssetSwapWithoutReceiverContractAndWithdrawToken: Gen[(
     GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
@@ -506,7 +507,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+    (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwapWithoutReceiver(
         1000, // total supply of token A
@@ -522,7 +523,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     withdrawTokenA <- withdrawToken(
       master,
       registeredTokenAContract.contractId,
-      registeredAssetSwapWithoutReceiverContract.contractId.bytes.arr,
+      registeredAssetSwapContract.contractId.bytes.arr,
       master.toAddress.bytes.arr,
       10L, // withdraw amount of token A
       fee,
@@ -532,20 +533,20 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     withdrawTokenB <- withdrawToken(
       user,
       registeredTokenBContract.contractId,
-      registeredAssetSwapWithoutReceiverContract.contractId.bytes.arr,
+      registeredAssetSwapContract.contractId.bytes.arr,
       user.toAddress.bytes.arr,
       10L, // withdraw amount of token B
       fee,
       ts + 8
     )
-  } yield (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
   issueTokenA, issueTokenB, depositAToken, depositBToken, withdrawTokenA, withdrawTokenB)
 
   property("asset swap without receiver able to withdraw token A and token B") {
     forAll(preconditionsAssetSwapWithoutReceiverContractAndWithdrawToken) { case (
       genesis: GenesisTransaction, genesis2: GenesisTransaction,
       master: PrivateKeyAccount, user: PrivateKeyAccount,
-      registeredAssetSwapWithoutReceiverContract: RegisterContractTransaction,
+      registeredAssetSwapContract: RegisterContractTransaction,
       registeredTokenAContract: RegisterContractTransaction,
       registeredTokenBContract: RegisterContractTransaction,
       issueTokenA: ExecuteContractFunctionTransaction,
@@ -558,8 +559,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
           Seq(
             TestBlock.create(
               genesis.timestamp, Seq(genesis, genesis2)),
-              TestBlock.create(registeredAssetSwapWithoutReceiverContract.timestamp, Seq(
-                registeredAssetSwapWithoutReceiverContract,
+              TestBlock.create(registeredAssetSwapContract.timestamp, Seq(
+                registeredAssetSwapContract,
                 registeredTokenAContract,
                 registeredTokenBContract,
                 issueTokenA, issueTokenB,
@@ -572,7 +573,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         blockDiff.txsDiff.txStatus shouldBe TransactionStatus.Success
 
         val master = withdrawTokenA.proofs.firstCurveProof.explicitGet().publicKey
-        val assetSwapWithoutReceiverContractId = registeredAssetSwapWithoutReceiverContract.contractId.bytes.arr
+        val assetSwapWithoutReceiverContractId = registeredAssetSwapContract.contractId.bytes.arr
         val tokenAContractId = registeredTokenAContract.contractId.bytes.arr
         val tokenBContractId = registeredTokenBContract.contractId.bytes.arr
 
@@ -605,7 +606,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+    (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwapWithoutReceiver(
         1000, // total supply of token A
@@ -642,7 +643,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     )
     createSwap <- createSwapAssetSwapContractDataStackGen(
       master,
-      registeredAssetSwapWithoutReceiverContract.contractId,
+      registeredAssetSwapContract.contractId,
       createSwapData,
       createSwapType,
       attach,
@@ -654,21 +655,21 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     finishSwapType = Seq(DataType.ShortBytes)
     finishSwap <- finishSwapAssetSwapContractDataStackGen(
       user,
-      registeredAssetSwapWithoutReceiverContract.contractId,
+      registeredAssetSwapContract.contractId,
       finishSwapData,
       finishSwapType,
       attach,
       fee,
       ts
     )
-  } yield (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
   issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, finishSwap)
 
   property("asset swap without receiver able to swap token A and token B") {
     forAll(preconditionsAssetSwapWithoutReceiverContractAndSwap) { case (
       genesis: GenesisTransaction, genesis2: GenesisTransaction,
       master: PrivateKeyAccount, user: PrivateKeyAccount,
-      registeredAssetSwapWithoutReceiverContract: RegisterContractTransaction,
+      registeredAssetSwapContract: RegisterContractTransaction,
       registeredTokenAContract: RegisterContractTransaction,
       registeredTokenBContract: RegisterContractTransaction,
       issueTokenA: ExecuteContractFunctionTransaction,
@@ -681,8 +682,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
           Seq(
             TestBlock.create(
               genesis.timestamp, Seq(genesis, genesis2)),
-              TestBlock.create(registeredAssetSwapWithoutReceiverContract.timestamp, Seq(
-                registeredAssetSwapWithoutReceiverContract,
+              TestBlock.create(registeredAssetSwapContract.timestamp, Seq(
+                registeredAssetSwapContract,
                 registeredTokenAContract,
                 registeredTokenBContract,
                 issueTokenA, issueTokenB,
@@ -696,7 +697,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
 
         val masterBytes = genesis.recipient.bytes.arr
         val userBytes = genesis2.recipient.bytes.arr
-        val assetSwapWithoutReceiverContractId = registeredAssetSwapWithoutReceiverContract.contractId.bytes.arr
+        val assetSwapWithoutReceiverContractId = registeredAssetSwapContract.contractId.bytes.arr
         val tokenAContractId = registeredTokenAContract.contractId.bytes.arr
         val tokenATokenId = tokenIdFromBytes(tokenAContractId, Ints.toByteArray(0)).explicitGet().arr
         val tokenBContractId = registeredTokenBContract.contractId.bytes.arr
@@ -796,7 +797,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+    (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwapWithoutReceiver(
         1000, // total supply of token A
@@ -833,7 +834,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     )
     createSwap <- createSwapAssetSwapContractDataStackGen(
       master,
-      registeredAssetSwapWithoutReceiverContract.contractId,
+      registeredAssetSwapContract.contractId,
       createSwapData,
       createSwapType,
       attach,
@@ -845,21 +846,21 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     expireWithdrawType = Seq(DataType.ShortBytes)
     expireWithdraw <- expireWithdrawAssetSwapContractDataStackGen(
       master,
-      registeredAssetSwapWithoutReceiverContract.contractId,
+      registeredAssetSwapContract.contractId,
       expireWithdrawData,
       expireWithdrawType,
       attach,
       fee,
       ts
     )
-  } yield (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
   issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, expireWithdraw)
 
   property("asset swap without receiver able to expire withdraw token A") {
     forAll(preconditionsAssetSwapWithoutReceiverContractAndExpireWithdraw) { case (
       genesis: GenesisTransaction, genesis2: GenesisTransaction,
       master: PrivateKeyAccount, user: PrivateKeyAccount,
-      registeredAssetSwapWithoutReceiverContract: RegisterContractTransaction,
+      registeredAssetSwapContract: RegisterContractTransaction,
       registeredTokenAContract: RegisterContractTransaction,
       registeredTokenBContract: RegisterContractTransaction,
       issueTokenA: ExecuteContractFunctionTransaction,
@@ -872,8 +873,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
           Seq(
             TestBlock.create(
               genesis.timestamp, Seq(genesis, genesis2)),
-              TestBlock.create(registeredAssetSwapWithoutReceiverContract.timestamp, Seq(
-                registeredAssetSwapWithoutReceiverContract,
+              TestBlock.create(registeredAssetSwapContract.timestamp, Seq(
+                registeredAssetSwapContract,
                 registeredTokenAContract,
                 registeredTokenBContract,
                 issueTokenA, issueTokenB,
@@ -887,7 +888,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
 
         val masterBytes = genesis.recipient.bytes.arr
         val userBytes = genesis2.recipient.bytes.arr
-        val assetSwapWithoutReceiverContractId = registeredAssetSwapWithoutReceiverContract.contractId.bytes.arr
+        val assetSwapWithoutReceiverContractId = registeredAssetSwapContract.contractId.bytes.arr
         val tokenAContractId = registeredTokenAContract.contractId.bytes.arr
         val tokenATokenId = tokenIdFromBytes(tokenAContractId, Ints.toByteArray(0)).explicitGet().arr
         val tokenBContractId = registeredTokenBContract.contractId.bytes.arr
@@ -976,7 +977,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+    (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwapWithoutReceiver(
         1000, // total supply of token A
@@ -1013,7 +1014,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     )
     createSwap <- createSwapAssetSwapContractDataStackGen(
       master,
-      registeredAssetSwapWithoutReceiverContract.contractId,
+      registeredAssetSwapContract.contractId,
       createSwapData,
       createSwapType,
       attach,
@@ -1025,7 +1026,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     reduceTokenBAmountType = Seq(DataType.ShortBytes, DataType.Amount)
     reduceTokenBAmount <- reduceTokenBAmountAssetSwapContractDataStackGen(
       master,
-      registeredAssetSwapWithoutReceiverContract.contractId,
+      registeredAssetSwapContract.contractId,
       reduceTokenBAmountData,
       reduceTokenBAmountType,
       attach,
@@ -1033,14 +1034,14 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       ts
     )
 
-  } yield (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract, registeredTokenBContract,
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
   issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, reduceTokenBAmount)
 
   property("asset swap without receiver able to reduce token B amount") {
     forAll(preconditionsAssetSwapWithoutReceiverContractAndReduceTokenBAmount) { case (
       genesis: GenesisTransaction, genesis2: GenesisTransaction,
       master: PrivateKeyAccount, user: PrivateKeyAccount,
-      registeredAssetSwapWithoutReceiverContract: RegisterContractTransaction,
+      registeredAssetSwapContract: RegisterContractTransaction,
       registeredTokenAContract: RegisterContractTransaction,
       registeredTokenBContract: RegisterContractTransaction,
       issueTokenA: ExecuteContractFunctionTransaction,
@@ -1053,8 +1054,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
           Seq(
             TestBlock.create(
               genesis.timestamp, Seq(genesis, genesis2)),
-              TestBlock.create(registeredAssetSwapWithoutReceiverContract.timestamp, Seq(
-                registeredAssetSwapWithoutReceiverContract,
+              TestBlock.create(registeredAssetSwapContract.timestamp, Seq(
+                registeredAssetSwapContract,
                 registeredTokenAContract,
                 registeredTokenBContract,
                 issueTokenA, issueTokenB,
@@ -1066,7 +1067,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
 
         blockDiff.txsDiff.txStatus shouldBe TransactionStatus.Success
 
-        val assetSwapContractId = registeredAssetSwapWithoutReceiverContract.contractId.bytes.arr
+        val assetSwapContractId = registeredAssetSwapContract.contractId.bytes.arr
         val tokenBAmountKey = ByteStr(
           Bytes.concat(
             assetSwapContractId,
