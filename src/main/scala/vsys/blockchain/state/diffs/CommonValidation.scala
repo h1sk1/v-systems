@@ -52,6 +52,9 @@ object CommonValidation {
   private def isAssetExchangeContracts(c: Contract): Boolean =
     c == ContractAssetSwap.contract || c == ContractAssetSwap.contractWithoutReceiver
 
+  private def isCrossChainContracts(c: Contract): Boolean =
+    c == ContractCrossChain.contractSingleChain
+
   private def disallowInvalidContractTxs[T <: Transaction](settings: FunctionalitySettings, h: Int, tx: T, c: Contract): Either[ValidationError, T] = {
     if (h <= settings.allowContractTransactionAfterHeight)
       Left(GenericError(s"must not appear before height=${settings.allowContractTransactionAfterHeight}"))
@@ -59,7 +62,7 @@ object CommonValidation {
       Left(GenericError(s"deposit withdraw contracts must not appear before height=${settings.allowDepositWithdrawContractAfterHeight}"))
     else if (h <= settings.allowExchangeContractAfterHeight && !isTokenContracts(c) && !isDepositWithdrawContracts(c))
       Left(GenericError(s"exchange contracts must not appear before height=${settings.allowExchangeContractAfterHeight}"))
-    else if (isTokenContracts(c) || isDepositWithdrawContracts(c) || isExchangeContracts(c) || isAssetExchangeContracts(c))
+    else if (isTokenContracts(c) || isDepositWithdrawContracts(c) || isExchangeContracts(c) || isAssetExchangeContracts(c) || isCrossChainContracts(c))
       Right(tx)
     else Left(GenericError(s"unsupported contracts"))
   }
