@@ -2,7 +2,7 @@ package vsys.blockchain.contract.crosschain
 
 import com.google.common.primitives.{Ints, Longs}
 import org.scalacheck.Gen
-import vsys.account.{ContractAccount, PrivateKeyAccount}
+import vsys.account.{Address, ContractAccount, PrivateKeyAccount}
 import vsys.blockchain.contract.Contract
 import vsys.blockchain.contract.{DataEntry, DataType}
 import vsys.blockchain.contract.token.TokenContractGen
@@ -14,6 +14,10 @@ import vsys.utils.crypto.EllipticCurveImpl
 trait CrossChainFunctionHelperGen extends CrossChainContractGen with TokenContractGen {
   
   override val supersedeIndex: Short = 0
+
+  override def addressDataStackGen(address: Address): Gen[Seq[DataEntry]] = for {
+    addr <- Gen.const(DataEntry(address.bytes.arr, DataType.Address))
+  } yield Seq(addr)
   
   def registerToken(
     user: PrivateKeyAccount,

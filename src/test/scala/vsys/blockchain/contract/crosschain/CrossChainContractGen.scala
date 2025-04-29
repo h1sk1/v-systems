@@ -1,7 +1,7 @@
 package vsys.blockchain.contract.crosschain
 
 import org.scalacheck.Gen
-import vsys.account.{ContractAccount, PrivateKeyAccount}
+import vsys.account.{Address, ContractAccount, PrivateKeyAccount}
 import vsys.blockchain.contract.{Contract, ContractCrossChain}
 import vsys.blockchain.contract.ContractGenHelper._
 import vsys.blockchain.contract._
@@ -39,23 +39,18 @@ trait CrossChainContractGen {
     witnessPublicKey: Array[Byte],
     chainId: Array[Byte]
   ): Gen[Seq[DataEntry]] = for {
-    witnessPublicKey <- Gen.const(DataEntry.create(witnessPublicKey, DataType.ShortBytes).right.get)
+    witnessPublicKey <- Gen.const(DataEntry.create(witnessPublicKey, DataType.PublicKey).right.get)
     chainId <- Gen.const(DataEntry.create(chainId, DataType.ShortBytes).right.get)
   } yield Seq(witnessPublicKey, chainId)
 
-  def supersedeCrossChainContractDataStackGen(
-    signer: PrivateKeyAccount,
-    contractId: ContractAccount,
-    data: Seq[Array[Byte]],
-    dataType: Seq[DataType.DataTypeVal[_]],
-    attachment: Array[Byte],
-    fee: Long,
-    ts: Long): Gen[ExecuteContractFunctionTransaction] = {
-    val id: Short = supersedeIndex
-    for {
-      data: Seq[DataEntry] <- ContractGenHelper.dataListGen(data, dataType)
-    } yield ExecuteContractFunctionTransaction.create(signer, contractId, id, data, attachment, fee, feeScale, ts).explicitGet()
-  }
+  def addressDataStackGen(address: Address): Gen[Seq[DataEntry]] = for {
+    addr <- Gen.const(DataEntry(address.bytes.arr, DataType.Address))
+  } yield Seq(addr)
+
+  def supersedeCrossChainContractDataStackGen(signer: PrivateKeyAccount, contractId: ContractAccount, newAdd: Address,
+                              attachment: Array[Byte], fee: Long, ts: Long): Gen[ExecuteContractFunctionTransaction] = for {
+    data: Seq[DataEntry] <- addressDataStackGen(newAdd)
+  } yield ExecuteContractFunctionTransaction.create(signer, contractId, supersedeIndex, data, attachment, fee, feeScale, ts).explicitGet()
 
   def lockTokenCrossChainContractDataStackGen(
     signer: PrivateKeyAccount,

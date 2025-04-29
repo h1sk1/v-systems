@@ -17,7 +17,7 @@ object ContractCrossChain {
   // State Var
   val stateVarName = List("maker", "witnessPublicKey", "chainId")
   val makerStateVar: StateVar = StateVar(0.toByte, DataType.Address.id.toByte)
-  val witnessPublicKeyStateVar: StateVar = StateVar(1.toByte, DataType.ShortBytes.id.toByte)
+  val witnessPublicKeyStateVar: StateVar = StateVar(1.toByte, DataType.PublicKey.id.toByte)
   val chainIdStateVar: StateVar = StateVar(2.toByte, DataType.ShortBytes.id.toByte)
   lazy val stateVarTextual: Array[Byte] = Deser.serializeArrays(stateVarName.map(x => Deser.serilizeString(x)))
 
@@ -35,7 +35,7 @@ object ContractCrossChain {
     "chainId", // 1
     "singer" // 2
   )
-  val initDataType: Array[Byte] = Array(DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte)
+  val initDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.ShortBytes.id.toByte)
   val initTriggerOpcs: Seq[Array[Byte]] = Seq(
     loadSigner ++ Array(2.toByte),
     cdbvSet ++ Array(makerStateVar.index, 2.toByte),
@@ -136,10 +136,9 @@ object ContractCrossChain {
     "tokenIdWithRecipientAddress", // 12
     "msgConcat", // 13
     "witnessPublicKey", // 14
-    "msgConcatWithSignature" // 15
   )
   val unlockTokenDataType: Array[Byte] = Array(DataType.Amount.id.toByte, DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte,
-                                               DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte, DataType.Amount.id.toByte,
+                                               DataType.TokenId.id.toByte, DataType.Address.id.toByte, DataType.Amount.id.toByte,
                                                DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte)
   val unlockTokenFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(chainIdStateVar.index, 9.toByte),
@@ -155,8 +154,6 @@ object ContractCrossChain {
     basicConcat ++ Array(13.toByte, 6.toByte, 13.toByte),
     cdbvrGet ++ Array(witnessPublicKeyStateVar.index, 14.toByte),
     assertSig ++ Array(13.toByte, 8.toByte, 14.toByte),
-    basicConcat ++ Array(13.toByte, 8.toByte, 15.toByte),
-    assertHash ++ Array(15.toByte, 8.toByte),
     cdbvMapValMinus ++ Array(lockBalanceMap.index, 3.toByte, 5.toByte),
     cdbvMapValAdd ++ Array(tokenBalanceMap.index, 12.toByte, 5.toByte)
   )
