@@ -375,24 +375,19 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
     tokenIdWithRecipientAddressDataEntry = DataEntry.create(tokenIdWithRecipientAddress, DataType.ShortBytes).explicitGet().data
     amountDataEntry = DataEntry.create(amount, DataType.Amount).explicitGet().data
     txHashDataEntry = DataEntry.create(txHash, DataType.ShortBytes).explicitGet().data
-    messageConcat1 = blockNumberDataEntry ++ 
-                      burnerDataEntry
+    messageConcat1 = blockNumberDataEntry ++ burnerDataEntry
     messageConcat1DataEntry = DataEntry.create(messageConcat1, DataType.ShortBytes).explicitGet().data
     
-    messageConcat2 = messageConcat1DataEntry ++
-                      sidechainTokenAddressDataEntry
+    messageConcat2 = messageConcat1DataEntry ++ sidechainTokenAddressDataEntry
     messageConcat2DataEntry = DataEntry.create(messageConcat2, DataType.ShortBytes).explicitGet().data
     
-    messageConcat3 = messageConcat2DataEntry ++
-                      tokenIdWithRecipientAddressDataEntry
+    messageConcat3 = messageConcat2DataEntry ++ tokenIdWithRecipientAddressDataEntry
     messageConcat3DataEntry = DataEntry.create(messageConcat3, DataType.ShortBytes).explicitGet().data
 
-    messageConcat4 = messageConcat3DataEntry ++
-                      amountDataEntry
+    messageConcat4 = messageConcat3DataEntry ++ amountDataEntry
     messageConcat4DataEntry = DataEntry.create(messageConcat4, DataType.ShortBytes).explicitGet().data
 
-    messageToSign = messageConcat4DataEntry ++
-                    txHashDataEntry
+    messageToSign = messageConcat4DataEntry ++ txHashDataEntry
     
     signature = EllipticCurveImpl.sign(privateKey, messageToSign)
 
@@ -478,7 +473,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
           )
         )
 
-        val userTokenBBalanceKey = ByteStr(
+        val userTokenBalanceKey = ByteStr(
           Bytes.concat(
             crossChainContractId,
             Array(0.toByte), // state map index
@@ -496,7 +491,228 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
         )
 
         newState.contractNumInfo(masterTokenBalanceKey) shouldBe 1000L - 10L // original balance - lock token amount
-        newState.contractNumInfo(userTokenBBalanceKey) shouldBe 10L // unlock token amount
+        newState.contractNumInfo(userTokenBalanceKey) shouldBe 10L // unlock token amount
+      }
+    }
+  }
+
+  val preconditionsCrossChainSingleChainContractAndUpdateWitnessAndUnlockToken: Gen[(
+    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    RegisterContractTransaction, RegisterContractTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction)] = for {
+    (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+    ts, fee, description, attach, privateKey, publicKey, chainId) <-
+      createTokenAndInitCrossChainSingleChain(
+        1000, // total supply of token
+        1, // unity of token
+        1000, // issue amount of token
+        1000 // deposit amount of token
+      )
+
+    tokenContractId = registeredTokenContract.contractId.bytes.arr
+    tokenId = tokenIdFromBytes(tokenContractId, Ints.toByteArray(0)).explicitGet()
+
+    
+    // A example of etherium address
+    destinationAddress = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes
+
+    // lock token
+    lockTokenData = Seq(
+      master.toAddress.bytes.arr,
+      Longs.toByteArray(10L), // lock amount of token
+      tokenId.arr,
+      chainId,
+      destinationAddress
+    )
+    lockTokenDataType = Seq(
+      DataType.Address,
+      DataType.Amount,
+      DataType.TokenId,
+      DataType.ShortBytes,
+      DataType.ShortBytes
+    )
+    lockToken <- lockTokenCrossChainContractDataStackGen(
+      master,
+      registeredCrossChainContract.contractId,
+      lockTokenData,
+      lockTokenDataType,
+      attach,
+      fee,
+      ts + 1
+    )
+
+    seedBytes: Array[Byte] = Ints.toByteArray(2000)
+    newPair = EllipticCurveImpl.createKeyPair(seedBytes)
+    newPrivateKey = newPair._1
+    newPublicKey = newPair._2
+
+
+    newPublicKeyDataEntry = DataEntry.create(newPublicKey, DataType.PublicKey).explicitGet().data
+    randomNumber = Longs.toByteArray(1000L) // random number
+    randomNumberDataEntry = DataEntry.create(randomNumber, DataType.Amount).explicitGet().data
+    messageToSign = newPublicKeyDataEntry ++ randomNumberDataEntry
+    updateWitnesssignature = EllipticCurveImpl.sign(privateKey, messageToSign)
+
+    updateWitnessData = Seq(
+      newPublicKey,
+      randomNumber,
+      updateWitnesssignature
+    )
+    updateWitnessDataType = Seq(
+      DataType.PublicKey,
+      DataType.Amount,
+      DataType.ShortBytes
+    )
+    updateWitness <- updateWitnessCrossChainContractDataStackGen(
+      master,
+      registeredCrossChainContract.contractId,
+      updateWitnessData,
+      updateWitnessDataType,
+      attach,
+      fee,
+      ts
+    )
+
+    blockNumber = Longs.toByteArray(1000L) // block number
+    burner = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes // burner address
+    sidechainTokenAddress = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes
+    vsysTokenId = tokenId.arr
+    vsysRecipientAddress = user.toAddress.bytes.arr
+    amount = Longs.toByteArray(10L) // unlock amount of token
+    txHash = "0xabcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz12".getBytes
+
+    blockNumberDataEntry = DataEntry.create(blockNumber, DataType.Amount).explicitGet().data
+    burnerDataEntry = DataEntry.create(burner, DataType.ShortBytes).explicitGet().data
+    sidechainTokenAddressDataEntry = DataEntry.create(sidechainTokenAddress, DataType.ShortBytes).explicitGet().data
+    tokenIdWithRecipientAddress = vsysTokenId ++ vsysRecipientAddress
+    tokenIdWithRecipientAddressDataEntry = DataEntry.create(tokenIdWithRecipientAddress, DataType.ShortBytes).explicitGet().data
+    amountDataEntry = DataEntry.create(amount, DataType.Amount).explicitGet().data
+    txHashDataEntry = DataEntry.create(txHash, DataType.ShortBytes).explicitGet().data
+    messageConcat1 = blockNumberDataEntry ++ 
+                      burnerDataEntry
+    messageConcat1DataEntry = DataEntry.create(messageConcat1, DataType.ShortBytes).explicitGet().data
+    
+    messageConcat2 = messageConcat1DataEntry ++
+                      sidechainTokenAddressDataEntry
+    messageConcat2DataEntry = DataEntry.create(messageConcat2, DataType.ShortBytes).explicitGet().data
+    
+    messageConcat3 = messageConcat2DataEntry ++
+                      tokenIdWithRecipientAddressDataEntry
+    messageConcat3DataEntry = DataEntry.create(messageConcat3, DataType.ShortBytes).explicitGet().data
+
+    messageConcat4 = messageConcat3DataEntry ++
+                      amountDataEntry
+    messageConcat4DataEntry = DataEntry.create(messageConcat4, DataType.ShortBytes).explicitGet().data
+
+    messageToSign = messageConcat4DataEntry ++
+                    txHashDataEntry
+    
+    signature = EllipticCurveImpl.sign(newPrivateKey, messageToSign)
+    
+    // unlock token
+    unlockTokenData = Seq(
+      blockNumber,
+      burner,
+      sidechainTokenAddress,
+      vsysTokenId,
+      vsysRecipientAddress,
+      amount,
+      txHash,
+      chainId,
+      signature
+    )
+    unlockTokenDataType = Seq(
+      DataType.Amount,
+      DataType.ShortBytes,
+      DataType.ShortBytes,
+      DataType.TokenId,
+      DataType.Address,
+      DataType.Amount,
+      DataType.ShortBytes,
+      DataType.ShortBytes,
+      DataType.ShortBytes
+    )
+    unlockToken <- unlockTokenCrossChainContractDataStackGen(
+      master,
+      registeredCrossChainContract.contractId,
+      unlockTokenData,
+      unlockTokenDataType,
+      attach,
+      fee,
+      ts
+    )
+  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken, updateWitness, unlockToken)
+
+  property("cross chain single chain able to update witness and unlock token") {
+    forAll(preconditionsCrossChainSingleChainContractAndUpdateWitnessAndUnlockToken) { case (
+      genesis: GenesisTransaction, genesis2: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      registeredCrossChainContract: RegisterContractTransaction,
+      registeredTokenContract: RegisterContractTransaction,
+      issueToken: ExecuteContractFunctionTransaction,
+      depositToken: ExecuteContractFunctionTransaction,
+      lockToken: ExecuteContractFunctionTransaction,
+      updateWitness: ExecuteContractFunctionTransaction,
+      unlockToken: ExecuteContractFunctionTransaction) =>
+        assertDiffAndStateCorrectBlockTime(
+          Seq(
+            TestBlock.create(
+              genesis.timestamp, Seq(genesis, genesis2)),
+              TestBlock.create(registeredCrossChainContract.timestamp, Seq(
+                registeredCrossChainContract,
+                registeredTokenContract,
+                issueToken, depositToken))),
+          TestBlock.createWithTxStatus(
+            unlockToken.timestamp,
+            Seq(updateWitness, lockToken, unlockToken),
+            TransactionStatus.Success)) { (blockDiff, newState) =>
+          
+        blockDiff.txsDiff.txStatus shouldBe TransactionStatus.Success
+
+        val masterBytes = genesis.recipient.bytes.arr
+        val userBytes = genesis2.recipient.bytes.arr
+        val crossChainContractId = registeredCrossChainContract.contractId.bytes.arr
+        val tokenContractId = registeredTokenContract.contractId.bytes.arr
+        val tokenId = tokenIdFromBytes(tokenContractId, Ints.toByteArray(0)).explicitGet().arr
+
+        val masterTokenBalanceKey = ByteStr(
+          Bytes.concat(
+            crossChainContractId,
+            Array(0.toByte), // state map index
+            DataEntry.create(
+              DataEntry(
+                tokenId,
+                DataType.TokenId
+              ).data ++ DataEntry(
+                masterBytes,
+                DataType.Address
+              ).data,
+              DataType.ShortBytes
+            ).right.get.bytes
+          )
+        )
+
+        val userTokenBalanceKey = ByteStr(
+          Bytes.concat(
+            crossChainContractId,
+            Array(0.toByte), // state map index
+            DataEntry.create(
+              DataEntry(
+                tokenId,
+                DataType.TokenId
+              ).data ++ DataEntry(
+                userBytes,
+                DataType.Address
+              ).data,
+              DataType.ShortBytes
+            ).right.get.bytes
+          )
+        )
+
+        newState.contractNumInfo(masterTokenBalanceKey) shouldBe 1000L - 10L // original balance - lock token amount
+        newState.contractNumInfo(userTokenBalanceKey) shouldBe 10L // unlock token amount
       }
     }
   }

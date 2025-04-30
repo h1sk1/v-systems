@@ -164,16 +164,19 @@ object ContractCrossChain {
   val updateWitnessId: Short = 3
   val updateWitnessPara: Seq[String] = Seq(
     "newWitnessPublicKey", // 0
-    "signature", // 1
-    "maker", // 2
-    "oldWitnessPublicKey" // 3
+    "randomNumber", // 1
+    "signature", // 2
+    "maker", // 3
+    "msgConcat", // 4
+    "oldWitnessPublicKey" // 5
   )
-  val updateWitnessDataType: Array[Byte] = Array(DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte)
+  val updateWitnessDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.Amount.id.toByte, DataType.ShortBytes.id.toByte)
   val updateWitnessFunctionOpcs: Seq[Array[Byte]] = Seq(
-    cdbvrGet ++ Array(makerStateVar.index, 2.toByte),
-    assertSigner ++ Array(2.toByte),
-    cdbvrGet ++ Array(witnessPublicKeyStateVar.index, 3.toByte),
-    assertSig ++ Array(0.toByte, 1.toByte, 3.toByte),
+    cdbvrGet ++ Array(makerStateVar.index, 3.toByte),
+    assertSigner ++ Array(3.toByte),
+    basicConcat ++ Array(0.toByte, 1.toByte, 4.toByte),
+    cdbvrGet ++ Array(witnessPublicKeyStateVar.index, 5.toByte),
+    assertSig ++ Array(4.toByte, 2.toByte, 5.toByte),
     cdbvSet ++ Array(witnessPublicKeyStateVar.index, 0.toByte)
   )
   lazy val updateWitnessFunc: Array[Byte] = getFunctionBytes(updateWitnessId, publicFuncType, nonReturnType, updateWitnessDataType, updateWitnessFunctionOpcs)
