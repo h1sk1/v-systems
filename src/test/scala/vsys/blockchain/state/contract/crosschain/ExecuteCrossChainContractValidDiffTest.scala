@@ -27,11 +27,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
   private implicit def noShrink[A]: Shrink[A] = Shrink(_ => Stream.empty)
 
   val preconditionsCrossChainSingleChainContractAndWithdrawToken: Gen[(
-    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+    (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
     ts, fee, description, attach, privateKey, publicKey, chainId) <-
       createTokenAndInitCrossChainSingleChain(
         1000, // total supply of token
@@ -49,12 +50,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       fee,
       ts + 7
     )
-  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, withdrawToken)
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, withdrawToken)
 
   property("cross chain single chain able to withdraw token") {
     forAll(preconditionsCrossChainSingleChainContractAndWithdrawToken) { case (
-      genesis: GenesisTransaction, genesis2: GenesisTransaction,
-      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      genesis: GenesisTransaction, genesis2: GenesisTransaction, genesis3: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount, regulator: PrivateKeyAccount,
       registeredCrossChainContract: RegisterContractTransaction,
       registeredTokenContract: RegisterContractTransaction,
       issueToken: ExecuteContractFunctionTransaction,
@@ -63,7 +64,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
-              genesis.timestamp, Seq(genesis, genesis2)),
+              genesis.timestamp, Seq(genesis, genesis2, genesis3)),
               TestBlock.create(registeredCrossChainContract.timestamp, Seq(
                 registeredCrossChainContract,
                 registeredTokenContract,
@@ -90,11 +91,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
   }
 
   val preconditionsCrossChainSingleChainContractAndLockToken: Gen[(
-    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+    (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
     ts, fee, description, attach, privateKey, publicKey, chainId) <-
       createTokenAndInitCrossChainSingleChain(
         1000, // total supply of token
@@ -106,7 +108,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
     tokenContractId = registeredTokenContract.contractId.bytes.arr
     tokenId = tokenIdFromBytes(tokenContractId, Ints.toByteArray(0)).explicitGet()
 
-    // A example of etherium address
+    // A example of ethereum address
     destinationAddress = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes
     // lock token
     lockTokenData = Seq(
@@ -132,12 +134,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       fee,
       ts
     )
-  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken)
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken)
 
   property("cross chain single chain able to lock token") {
     forAll(preconditionsCrossChainSingleChainContractAndLockToken) { case (
-      genesis: GenesisTransaction, genesis2: GenesisTransaction,
-      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      genesis: GenesisTransaction, genesis2: GenesisTransaction, genesis3: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount, regulator: PrivateKeyAccount,
       registeredCrossChainContract: RegisterContractTransaction,
       registeredTokenContract: RegisterContractTransaction,
       issueToken: ExecuteContractFunctionTransaction,
@@ -146,7 +148,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
-              genesis.timestamp, Seq(genesis, genesis2)),
+              genesis.timestamp, Seq(genesis, genesis2, genesis3)),
               TestBlock.create(registeredCrossChainContract.timestamp, Seq(
                 registeredCrossChainContract,
                 registeredTokenContract,
@@ -198,11 +200,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
   }
 
   val preconditionsCrossChainSingleChainContractAndSupersedeAndLock: Gen[(
-    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+    (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
     ts, fee, description, attach, privateKey, publicKey, chainId) <-
       createTokenAndInitCrossChainSingleChain(
         1000, // total supply of token
@@ -218,12 +221,13 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       master,
       registeredCrossChainContract.contractId,
       user.toAddress,
+      regulator.toAddress,
       attach,
       fee,
       ts
     )
 
-    // A example of etherium address
+    // A example of ethereum address
     destinationAddress = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes
     // lock token
     lockTokenData = Seq(
@@ -249,12 +253,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       fee,
       ts
     )
-  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, supersede, lockToken)
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, supersede, lockToken)
 
   property("cross chain single chain able to lock token after supersede") {
     forAll(preconditionsCrossChainSingleChainContractAndSupersedeAndLock) { case (
-      genesis: GenesisTransaction, genesis2: GenesisTransaction,
-      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      genesis: GenesisTransaction, genesis2: GenesisTransaction, genesis3: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount, regulator: PrivateKeyAccount,
       registeredCrossChainContract: RegisterContractTransaction,
       registeredTokenContract: RegisterContractTransaction,
       issueToken: ExecuteContractFunctionTransaction,
@@ -264,7 +268,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
-              genesis.timestamp, Seq(genesis, genesis2)),
+              genesis.timestamp, Seq(genesis, genesis2, genesis3)),
               TestBlock.create(registeredCrossChainContract.timestamp, Seq(
                 registeredCrossChainContract,
                 registeredTokenContract,
@@ -316,11 +320,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
   }
 
   val preconditionsCrossChainSingleChainContractAndUnlockToken: Gen[(
-    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+    (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
     ts, fee, description, attach, privateKey, publicKey, chainId) <-
       createTokenAndInitCrossChainSingleChain(
         1000, // total supply of token
@@ -332,7 +337,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
     tokenContractId = registeredTokenContract.contractId.bytes.arr
     tokenId = tokenIdFromBytes(tokenContractId, Ints.toByteArray(0)).explicitGet()
 
-    // A example of etherium address
+    // A example of ethereum address
     destinationAddress = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes
 
     // lock token
@@ -423,12 +428,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       fee,
       ts
     )
-  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken, unlockToken)
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken, unlockToken)
 
   property("cross chain single chain able to unlock token") {
     forAll(preconditionsCrossChainSingleChainContractAndUnlockToken) { case (
-      genesis: GenesisTransaction, genesis2: GenesisTransaction,
-      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      genesis: GenesisTransaction, genesis2: GenesisTransaction, genesis3: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount, regulator: PrivateKeyAccount,
       registeredCrossChainContract: RegisterContractTransaction,
       registeredTokenContract: RegisterContractTransaction,
       issueToken: ExecuteContractFunctionTransaction,
@@ -438,7 +443,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
-              genesis.timestamp, Seq(genesis, genesis2)),
+              genesis.timestamp, Seq(genesis, genesis2, genesis3)),
               TestBlock.create(registeredCrossChainContract.timestamp, Seq(
                 registeredCrossChainContract,
                 registeredTokenContract,
@@ -497,12 +502,13 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
   }
 
   val preconditionsCrossChainSingleChainContractAndUpdateWitnessAndUnlockToken: Gen[(
-    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction)] = for {
-    (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+    (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
     ts, fee, description, attach, privateKey, publicKey, chainId) <-
       createTokenAndInitCrossChainSingleChain(
         1000, // total supply of token
@@ -515,7 +521,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
     tokenId = tokenIdFromBytes(tokenContractId, Ints.toByteArray(0)).explicitGet()
 
     
-    // A example of etherium address
+    // A example of ethereum address
     destinationAddress = "0xabcdefghijklmnopqrstuvwxyz0123456789abcd".getBytes
 
     // lock token
@@ -566,7 +572,7 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       DataType.ShortBytes
     )
     updateWitness <- updateWitnessCrossChainContractDataStackGen(
-      master,
+      regulator,
       registeredCrossChainContract.contractId,
       updateWitnessData,
       updateWitnessDataType,
@@ -643,12 +649,12 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
       fee,
       ts
     )
-  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken, updateWitness, unlockToken)
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken, lockToken, updateWitness, unlockToken)
 
   property("cross chain single chain able to update witness and unlock token") {
     forAll(preconditionsCrossChainSingleChainContractAndUpdateWitnessAndUnlockToken) { case (
-      genesis: GenesisTransaction, genesis2: GenesisTransaction,
-      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      genesis: GenesisTransaction, genesis2: GenesisTransaction, genesis3: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount, regulator: PrivateKeyAccount,
       registeredCrossChainContract: RegisterContractTransaction,
       registeredTokenContract: RegisterContractTransaction,
       issueToken: ExecuteContractFunctionTransaction,
@@ -659,14 +665,14 @@ class ExecuteCrossChainContractValidDiffTest extends PropSpec
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
-              genesis.timestamp, Seq(genesis, genesis2)),
+              genesis.timestamp, Seq(genesis, genesis2, genesis3)),
               TestBlock.create(registeredCrossChainContract.timestamp, Seq(
                 registeredCrossChainContract,
                 registeredTokenContract,
                 issueToken, depositToken))),
           TestBlock.createWithTxStatus(
             unlockToken.timestamp,
-            Seq(updateWitness, lockToken, unlockToken),
+            Seq(lockToken, updateWitness, unlockToken),
             TransactionStatus.Success)) { (blockDiff, newState) =>
           
         blockDiff.txsDiff.txStatus shouldBe TransactionStatus.Success
