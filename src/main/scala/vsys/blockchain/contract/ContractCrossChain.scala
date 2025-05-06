@@ -23,7 +23,7 @@ object ContractCrossChain {
   ).explicitGet()
 
   // State Var
-  val stateVarName = List("maker", "witnessPublicKey", "chainId", "regulator")
+  val stateVarName = List("maker", "witnessPublicKey", "chainId", "regulator", "isActive")
   val makerStateVar: StateVar = StateVar(0.toByte, DataType.Address.id.toByte)
   val witnessPublicKeyStateVar: StateVar = StateVar(1.toByte, DataType.PublicKey.id.toByte)
   val chainIdStateVar: StateVar = StateVar(2.toByte, DataType.ShortBytes.id.toByte)
@@ -157,7 +157,7 @@ object ContractCrossChain {
     "tokenId", // 2
     "destinationChainId", // 3
     "destinationAddress", // 4
-    "isActive", // 5
+    "isActiveValue", // 5
     "originalChainId", // 6
     "tokenIdWithAddress" // 7
   )
@@ -226,7 +226,7 @@ object ContractCrossChain {
     "txHash", // 6
     "chainId", // 7
     "signature", // 8
-    "isActive", // 9
+    "isActiveValue", // 9
     "originalChainId", // 10
     "valueZero", // 11
     "blockNumberValid", // 12
@@ -282,7 +282,7 @@ object ContractCrossChain {
     "newWitnessPublicKey", // 0
     "randomNumber", // 1
     "signature", // 2
-    "isActive", // 3
+    "isActiveValue", // 3
     "regulator", // 4
     "msgConcat", // 5
     "oldWitnessPublicKey" // 6
