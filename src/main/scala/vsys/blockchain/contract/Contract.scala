@@ -97,6 +97,7 @@ object Contract extends ScorexLogging {
     ContractAssetSwap.contract.bytes.arr,
     ContractAssetSwap.contractWithoutReceiver.bytes.arr,
     ContractCrossChain.contractSingleChain.bytes.arr,
+    ContractCrossChain.contractSingleChainWithFreeze.bytes.arr,
   )
 
   def buildContract(languageCode: Array[Byte], languageVersion: Array[Byte],

@@ -53,7 +53,7 @@ object CommonValidation {
     c == ContractAssetSwap.contract || c == ContractAssetSwap.contractWithoutReceiver
 
   private def isCrossChainContracts(c: Contract): Boolean =
-    c == ContractCrossChain.contractSingleChain
+    c == ContractCrossChain.contractSingleChain || c == ContractCrossChain.contractSingleChainWithFreeze
 
   private def disallowInvalidContractTxs[T <: Transaction](settings: FunctionalitySettings, h: Int, tx: T, c: Contract): Either[ValidationError, T] = {
     if (h <= settings.allowContractTransactionAfterHeight)

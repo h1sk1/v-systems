@@ -18,6 +18,8 @@ trait CrossChainContractGen {
   
   def crossChainSingleChainContractGen(): Gen[Contract] = ContractCrossChain.contractSingleChain
 
+  def crossChainSingleChainContractWithFreezeGen(): Gen[Contract] = ContractCrossChain.contractSingleChainWithFreeze
+
 // TODO: Uncomment when multiChainContract is implemented
 //   def crossChainMultiChainContractGen(): Gen[Contract] = ContractCrossChain.multiChainContract
 

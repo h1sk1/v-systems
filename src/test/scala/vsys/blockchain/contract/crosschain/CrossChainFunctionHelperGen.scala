@@ -107,4 +107,41 @@ trait CrossChainFunctionHelperGen extends CrossChainContractGen with TokenContra
     depositToken <- depositToken(master, tokenContractId, master.toAddress.bytes.arr, crossChainContractId.bytes.arr, tokenDepositAmount, fee, ts + 3)
   } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
   ts, fee, description, attach, privateKey, publicKey, chainId)
+
+  val crossChainSingleChainContractWithFreeze: Gen[Contract] = crossChainSingleChainContractWithFreezeGen()
+
+  def createTokenAndInitCrossChainSingleChainWithFreeze(
+    totalSupply: Long, unity: Long, issueAmount: Long, tokenDepositAmount: Long): Gen[(
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
+    RegisterContractTransaction, RegisterContractTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long, Long, String, Array[Byte], Array[Byte], Array[Byte], Array[Byte])] = for {
+    (master, ts, fee) <- basicContractTestGen()
+    genesis <- genesisCrossChainContractGen(master, ts)
+    user <- accountGen
+    genesis2 <- genesisCrossChainContractGen(user, ts)
+    regulator <- accountGen
+    genesis3 <- genesisCrossChainContractGen(regulator, ts)
+    tokenContractTemplate <- tokenContract
+    crossChainContractTemplate <- crossChainSingleChainContractWithFreeze
+    description <- validDescStringGen
+    attach <- genBoundedString(2, ExecuteContractFunctionTransaction.MaxDescriptionSize)
+    // Register cross chain contract
+    seedBytes: Array[Byte] = Ints.toByteArray(1000)
+    pair = EllipticCurveImpl.createKeyPair(seedBytes)
+    privateKey = pair._1
+    publicKey = pair._2
+    chainId = Longs.toByteArray(1L)
+    initCorssChainDataStack: Seq[DataEntry] <- initCrossChainContractSingleChainDataStackGen(publicKey, chainId, regulator.toAddress)
+    registeredCrossChainContract <- registerCrossChainContractGen(master, crossChainContractTemplate, initCorssChainDataStack, description, fee + 10000000000L, ts)
+    crossChainContractId = registeredCrossChainContract.contractId
+    // Register and deposit token
+    initTokenDataStack: Seq[DataEntry] <- initTokenDataStackGen(totalSupply, unity, "init")
+    registeredTokenContract <- registerTokenGen(master, tokenContractTemplate, initTokenDataStack, description, fee + 10000000000L, ts + 1)
+    tokenContractId = registeredTokenContract.contractId
+    issueToken <- issueTokenGen(master, tokenContractId, issueAmount, attach, fee, ts + 2)
+    depositToken <- depositToken(master, tokenContractId, master.toAddress.bytes.arr, crossChainContractId.bytes.arr, tokenDepositAmount, fee, ts + 3)
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+  ts, fee, description, attach, privateKey, publicKey, chainId)
 }

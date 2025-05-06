@@ -76,4 +76,54 @@ class RegisterCrossChainContractDiffTest extends PropSpec
       }
     }
   }
+
+  val preconditionAndBuildCrossChainContractWithFreeze: Gen[(Array[Byte], Array[Byte], Seq[Array[Byte]],
+    Seq[Array[Byte]], Seq[Array[Byte]], Seq[Array[Byte]], Seq[Array[Byte]])] = for {
+    langCode <- ContractGenHelper.languageCodeGen(languageCode)
+    langVer <- ContractGenHelper.languageVersionGen(languageVersion)
+    init <- Gen.const(ContractCrossChain.contractSingleChainWithFreeze.trigger)
+    descriptor <- Gen.const(ContractCrossChain.contractSingleChainWithFreeze.descriptor)
+    stateVar <- Gen.const(ContractCrossChain.contractSingleChainWithFreeze.stateVar)
+    stateMap <- Gen.const(ContractCrossChain.contractSingleChainWithFreeze.stateMap)
+    textual <- Gen.const(ContractCrossChain.contractSingleChainWithFreeze.textual)
+  } yield (langCode, langVer, init, descriptor, stateVar, stateMap, textual)
+  
+  property("register cross-chain single chain contract with freeze build doesn't break invariant"){
+    forAll(preconditionAndBuildCrossChainContractWithFreeze) { case (langCode, langVer, init, descriptor, stateVar, stateMap, textual) =>
+      Contract.buildContract(langCode, langVer, init, descriptor, stateVar, stateMap, textual) shouldBe an[Right[_, _]]
+    }
+  }
+  
+  val validContractSingleChainWithFreeze: Gen[Contract] = crossChainSingleChainContractWithFreezeGen()
+  val preconditionsAndRegContractTestWithFreeze: Gen[(GenesisTransaction, RegisterContractTransaction)] = for {
+    (master, ts, fee) <- ContractGenHelper.basicContractTestGen()
+    genesis <- genesisCrossChainContractGen(master, ts)
+    contract <- validContractSingleChainWithFreeze
+    description <- validDescStringGen
+    seedBytes: Array[Byte] = Ints.toByteArray(1000)
+    pair = EllipticCurveImpl.createKeyPair(seedBytes)
+    privateKey = pair._1
+    publicKey = pair._2
+    chainId = Longs.toByteArray(1L)
+    regulator <- accountGen
+    initCorssChainDataStack: Seq[DataEntry] <- initCrossChainContractSingleChainDataStackGen(publicKey, chainId, regulator.toAddress)
+    create <- registerCrossChainContractGen(master, contract, initCorssChainDataStack, description, fee + 10000000000L, ts + 1)
+  } yield (genesis, create)
+
+  property("register cross-chain single chain contract with freeze transaction doesn't break invariant") {
+    forAll(preconditionsAndRegContractTestWithFreeze) { case (genesis, reg: RegisterContractTransaction) =>
+      assertDiffAndState(Seq(TestBlock.create(Seq(genesis))), TestBlock.create(Seq(reg))) { (blockDiff, newState) =>
+        val totalPortfolioDiff: Portfolio = Monoid.combineAll(blockDiff.txsDiff.portfolios.values)
+        totalPortfolioDiff.balance shouldBe -reg.transactionFee
+        totalPortfolioDiff.effectiveBalance shouldBe -reg.transactionFee
+        val master = reg.proofs.firstCurveProof.explicitGet().publicKey
+        val contractId = reg.contractId.bytes
+
+        val (_, masterTxs) = newState.accountTransactionIds(master, 2, 0)
+        masterTxs.size shouldBe 2 // genesis, reg
+        newState.contractTokens(contractId) shouldBe 0
+        newState.contractContent(contractId) shouldEqual Some((2, reg.id, ContractCrossChain.contractSingleChainWithFreeze))
+      }
+    }
+  }
 }
