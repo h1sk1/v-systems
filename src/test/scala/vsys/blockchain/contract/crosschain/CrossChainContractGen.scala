@@ -37,19 +37,22 @@ trait CrossChainContractGen {
 
   def initCrossChainContractSingleChainDataStackGen(
     witnessPublicKey: Array[Byte],
-    chainId: Array[Byte]
+    chainId: Array[Byte],
+    regulator: Address
   ): Gen[Seq[DataEntry]] = for {
     witnessPublicKey <- Gen.const(DataEntry.create(witnessPublicKey, DataType.PublicKey).right.get)
     chainId <- Gen.const(DataEntry.create(chainId, DataType.ShortBytes).right.get)
-  } yield Seq(witnessPublicKey, chainId)
+    regulator <- Gen.const(DataEntry.create(regulator.bytes.arr, DataType.Address).right.get)
+  } yield Seq(witnessPublicKey, chainId, regulator)
 
-  def addressDataStackGen(address: Address): Gen[Seq[DataEntry]] = for {
-    addr <- Gen.const(DataEntry(address.bytes.arr, DataType.Address))
-  } yield Seq(addr)
+  def supersedeDataStackGen(address1: Address, address2: Address): Gen[Seq[DataEntry]] = for {
+    addr1 <- Gen.const(DataEntry(address1.bytes.arr, DataType.Address))
+    addr2 <- Gen.const(DataEntry(address2.bytes.arr, DataType.Address))
+  } yield Seq(addr1, addr2)
 
-  def supersedeCrossChainContractDataStackGen(signer: PrivateKeyAccount, contractId: ContractAccount, newAdd: Address,
+  def supersedeCrossChainContractDataStackGen(signer: PrivateKeyAccount, contractId: ContractAccount, newOwner: Address, newRegulator: Address,
                               attachment: Array[Byte], fee: Long, ts: Long): Gen[ExecuteContractFunctionTransaction] = for {
-    data: Seq[DataEntry] <- addressDataStackGen(newAdd)
+    data: Seq[DataEntry] <- supersedeDataStackGen(newOwner, newRegulator)
   } yield ExecuteContractFunctionTransaction.create(signer, contractId, supersedeIndex, data, attachment, fee, feeScale, ts).explicitGet()
 
   def lockTokenCrossChainContractDataStackGen(

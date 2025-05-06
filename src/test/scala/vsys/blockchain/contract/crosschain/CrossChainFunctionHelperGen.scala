@@ -75,7 +75,8 @@ trait CrossChainFunctionHelperGen extends CrossChainContractGen with TokenContra
 
   def createTokenAndInitCrossChainSingleChain(
     totalSupply: Long, unity: Long, issueAmount: Long, tokenDepositAmount: Long): Gen[(
-    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    GenesisTransaction, GenesisTransaction, GenesisTransaction,
+    PrivateKeyAccount, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     Long, Long, String, Array[Byte], Array[Byte], Array[Byte], Array[Byte])] = for {
@@ -83,6 +84,8 @@ trait CrossChainFunctionHelperGen extends CrossChainContractGen with TokenContra
     genesis <- genesisCrossChainContractGen(master, ts)
     user <- accountGen
     genesis2 <- genesisCrossChainContractGen(user, ts)
+    regulator <- accountGen
+    genesis3 <- genesisCrossChainContractGen(regulator, ts)
     tokenContractTemplate <- tokenContract
     crossChainContractTemplate <- crossChainSingleChainContract
     description <- validDescStringGen
@@ -93,7 +96,7 @@ trait CrossChainFunctionHelperGen extends CrossChainContractGen with TokenContra
     privateKey = pair._1
     publicKey = pair._2
     chainId = Longs.toByteArray(1L)
-    initCorssChainDataStack: Seq[DataEntry] <- initCrossChainContractSingleChainDataStackGen(publicKey, chainId)
+    initCorssChainDataStack: Seq[DataEntry] <- initCrossChainContractSingleChainDataStackGen(publicKey, chainId, regulator.toAddress)
     registeredCrossChainContract <- registerCrossChainContractGen(master, crossChainContractTemplate, initCorssChainDataStack, description, fee + 10000000000L, ts)
     crossChainContractId = registeredCrossChainContract.contractId
     // Register and deposit token
@@ -102,6 +105,6 @@ trait CrossChainFunctionHelperGen extends CrossChainContractGen with TokenContra
     tokenContractId = registeredTokenContract.contractId
     issueToken <- issueTokenGen(master, tokenContractId, issueAmount, attach, fee, ts + 2)
     depositToken <- depositToken(master, tokenContractId, master.toAddress.bytes.arr, crossChainContractId.bytes.arr, tokenDepositAmount, fee, ts + 3)
-  } yield (genesis, genesis2, master, user, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
+  } yield (genesis, genesis2, genesis3, master, user, regulator, registeredCrossChainContract, registeredTokenContract, issueToken, depositToken,
   ts, fee, description, attach, privateKey, publicKey, chainId)
 }

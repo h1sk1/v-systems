@@ -9,16 +9,17 @@ object ContractCrossChain {
   lazy val contractSingleChain: Contract = Contract.buildContract(Deser.serilizeString("vdds"), Ints.toByteArray(2),
     Seq(initTrigger, depositTrigger, withdrawTrigger),
     Seq(supersedeFunc, lockTokenFunc, unlockTokenFunc, updateWitnessFunc, balanceOfFunc),
-    Seq(makerStateVar.arr, witnessPublicKeyStateVar.arr, chainIdStateVar.arr),
+    Seq(makerStateVar.arr, witnessPublicKeyStateVar.arr, chainIdStateVar.arr, regulatorStateVar.arr),
     Seq(tokenBalanceMap.arr, lockBalanceMap.arr),
     Seq(triggerTextual, descriptorTextual, stateVarTextual, stateMapTextual)
   ).explicitGet()
 
   // State Var
-  val stateVarName = List("maker", "witnessPublicKey", "chainId")
+  val stateVarName = List("maker", "witnessPublicKey", "chainId", "regulator")
   val makerStateVar: StateVar = StateVar(0.toByte, DataType.Address.id.toByte)
   val witnessPublicKeyStateVar: StateVar = StateVar(1.toByte, DataType.PublicKey.id.toByte)
   val chainIdStateVar: StateVar = StateVar(2.toByte, DataType.ShortBytes.id.toByte)
+  val regulatorStateVar: StateVar = StateVar(3.toByte, DataType.Address.id.toByte)
   lazy val stateVarTextual: Array[Byte] = Deser.serializeArrays(stateVarName.map(x => Deser.serilizeString(x)))
 
   // State Map
@@ -33,14 +34,16 @@ object ContractCrossChain {
   val initPara: Seq[String] = Seq(
     "witnessPublicKey", // 0
     "chainId", // 1
-    "singer" // 2
+    "regulator", // 2
+    "singer" // 3
   )
-  val initDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.ShortBytes.id.toByte)
+  val initDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.ShortBytes.id.toByte, DataType.Account.id.toByte)
   val initTriggerOpcs: Seq[Array[Byte]] = Seq(
-    loadSigner ++ Array(2.toByte),
-    cdbvSet ++ Array(makerStateVar.index, 2.toByte),
+    loadSigner ++ Array(3.toByte),
+    cdbvSet ++ Array(makerStateVar.index, 3.toByte),
     cdbvSet ++ Array(witnessPublicKeyStateVar.index, 0.toByte),
     cdbvSet ++ Array(chainIdStateVar.index, 1.toByte),
+    cdbvSet ++ Array(regulatorStateVar.index, 2.toByte),
   )
   lazy val initTrigger: Array[Byte] = getFunctionBytes(initId, onInitTriggerType, nonReturnType, initDataType, initTriggerOpcs)
   val initTextualBytes: Array[Byte] = textualFunc("init", Seq(), initPara)
@@ -83,13 +86,15 @@ object ContractCrossChain {
   val supersedeId: Short = 0
   val supersedePara: Seq[String] = Seq(
     "newOwner", // 0
-    "maker" // 1
+    "newRegulator", // 1
+    "maker" // 2
   )
-  val supersedeDataType: Array[Byte] = Array(DataType.Account.id.toByte)
+  val supersedeDataType: Array[Byte] = Array(DataType.Account.id.toByte, DataType.Account.id.toByte)
   val supersedeFunctionOpcs: Seq[Array[Byte]] = Seq(
-    cdbvrGet ++ Array(makerStateVar.index, 1.toByte),
-    assertSigner ++ Array(1.toByte),
-    cdbvSet ++ Array(makerStateVar.index, 0.toByte)
+    cdbvrGet ++ Array(makerStateVar.index, 2.toByte),
+    assertSigner ++ Array(2.toByte),
+    cdbvSet ++ Array(makerStateVar.index, 0.toByte),
+    cdbvSet ++ Array(regulatorStateVar.index, 1.toByte)
   )
   lazy val supersedeFunc: Array[Byte] = getFunctionBytes(supersedeId, publicFuncType, nonReturnType, supersedeDataType, supersedeFunctionOpcs)
   val supersedeTextualBytes: Array[Byte] = textualFunc("supersede", Seq(), supersedePara)
@@ -166,13 +171,13 @@ object ContractCrossChain {
     "newWitnessPublicKey", // 0
     "randomNumber", // 1
     "signature", // 2
-    "maker", // 3
+    "regulator", // 3
     "msgConcat", // 4
     "oldWitnessPublicKey" // 5
   )
   val updateWitnessDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.Amount.id.toByte, DataType.ShortBytes.id.toByte)
   val updateWitnessFunctionOpcs: Seq[Array[Byte]] = Seq(
-    cdbvrGet ++ Array(makerStateVar.index, 3.toByte),
+    cdbvrGet ++ Array(regulatorStateVar.index, 3.toByte),
     assertSigner ++ Array(3.toByte),
     basicConcat ++ Array(0.toByte, 1.toByte, 4.toByte),
     cdbvrGet ++ Array(witnessPublicKeyStateVar.index, 5.toByte),

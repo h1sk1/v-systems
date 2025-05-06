@@ -55,7 +55,8 @@ class RegisterCrossChainContractDiffTest extends PropSpec
     privateKey = pair._1
     publicKey = pair._2
     chainId = Longs.toByteArray(1L)
-    initCorssChainDataStack: Seq[DataEntry] <- initCrossChainContractSingleChainDataStackGen(publicKey, chainId)
+    regulator <- accountGen
+    initCorssChainDataStack: Seq[DataEntry] <- initCrossChainContractSingleChainDataStackGen(publicKey, chainId, regulator.toAddress)
     create <- registerCrossChainContractGen(master, contract, initCorssChainDataStack, description, fee + 10000000000L, ts + 1)
   } yield (genesis, create)
 
