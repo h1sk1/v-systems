@@ -6,37 +6,86 @@ import vsys.blockchain.state._
 import vsys.utils.serialization.Deser
 
 object ContractCrossChain {
-  lazy val contractSingleChain: Contract = Contract.buildContract(Deser.serilizeString("vdds"), Ints.toByteArray(2),
-    Seq(initTrigger, depositTrigger, withdrawTrigger),
-    Seq(supersedeFunc, lockTokenFunc, unlockTokenFunc, updateWitnessFunc, balanceOfFunc),
-    Seq(makerStateVar.arr, witnessPublicKeyStateVar.arr, chainIdStateVar.arr, regulatorStateVar.arr),
-    Seq(tokenBalanceMap.arr, lockBalanceMap.arr),
-    Seq(triggerTextual, descriptorTextual, stateVarTextual, stateMapTextual)
-  ).explicitGet()
+  lazy val contractSingleChain: Contract = Contract
+    .buildContract(
+      Deser.serilizeString("vdds"),
+      Ints.toByteArray(2),
+      Seq(initTrigger, depositTrigger, withdrawTrigger),
+      Seq(
+        supersedeFunc,
+        lockTokenFunc,
+        unlockTokenFunc,
+        updateWitnessFunc,
+        balanceOfFunc
+      ),
+      Seq(
+        makerStateVar.arr,
+        witnessPublicKeyStateVar.arr,
+        chainIdStateVar.arr,
+        regulatorStateVar.arr
+      ),
+      Seq(tokenBalanceMap.arr, lockBalanceMap.arr),
+      Seq(triggerTextual, descriptorTextual, stateVarTextual, stateMapTextual)
+    )
+    .explicitGet()
 
-  lazy val contractSingleChainWithFreeze: Contract = Contract.buildContract(Deser.serilizeString("vdds"), Ints.toByteArray(2),
-    Seq(initSingleChainWithFreezeTrigger, depositTrigger, withdrawTrigger),
-    Seq(supersedeFunc, lockTokenSingleChainWithFreezeFunc, unlockTokenSingleChainWithFreezeFunc, updateWitnessSingleChainWithFreezeFunc, balanceOfFunc, freezeFunc, unfreezeFunc),
-    Seq(makerStateVar.arr, witnessPublicKeyStateVar.arr, chainIdStateVar.arr, regulatorStateVar.arr, isActiveStateVar.arr),
-    Seq(tokenBalanceMap.arr, lockBalanceMap.arr),
-    Seq(singleChainWithFreezeTriggerTextual, singleChainWithFreezeDescriptorTextual, stateVarTextual, stateMapTextual)
-  ).explicitGet()
+  lazy val contractSingleChainWithFreeze: Contract = Contract
+    .buildContract(
+      Deser.serilizeString("vdds"),
+      Ints.toByteArray(2),
+      Seq(initSingleChainWithFreezeTrigger, depositTrigger, withdrawTrigger),
+      Seq(
+        supersedeFunc,
+        lockTokenSingleChainWithFreezeFunc,
+        unlockTokenSingleChainWithFreezeFunc,
+        updateWitnessSingleChainWithFreezeFunc,
+        balanceOfFunc,
+        freezeFunc,
+        unfreezeFunc
+      ),
+      Seq(
+        makerStateVar.arr,
+        witnessPublicKeyStateVar.arr,
+        chainIdStateVar.arr,
+        regulatorStateVar.arr,
+        isActiveStateVar.arr
+      ),
+      Seq(tokenBalanceMap.arr, lockBalanceMap.arr),
+      Seq(
+        singleChainWithFreezeTriggerTextual,
+        singleChainWithFreezeDescriptorTextual,
+        stateVarTextual,
+        stateMapTextual
+      )
+    )
+    .explicitGet()
 
   // State Var
-  val stateVarName = List("maker", "witnessPublicKey", "chainId", "regulator", "isActive")
+  val stateVarName =
+    List("maker", "witnessPublicKey", "chainId", "regulator", "isActive")
   val makerStateVar: StateVar = StateVar(0.toByte, DataType.Address.id.toByte)
-  val witnessPublicKeyStateVar: StateVar = StateVar(1.toByte, DataType.PublicKey.id.toByte)
-  val chainIdStateVar: StateVar = StateVar(2.toByte, DataType.ShortBytes.id.toByte)
-  val regulatorStateVar: StateVar = StateVar(3.toByte, DataType.Address.id.toByte)
-  val isActiveStateVar: StateVar = StateVar(4.toByte, DataType.Boolean.id.toByte)
-  lazy val stateVarTextual: Array[Byte] = Deser.serializeArrays(stateVarName.map(x => Deser.serilizeString(x)))
+  val witnessPublicKeyStateVar: StateVar =
+    StateVar(1.toByte, DataType.PublicKey.id.toByte)
+  val chainIdStateVar: StateVar =
+    StateVar(2.toByte, DataType.ShortBytes.id.toByte)
+  val regulatorStateVar: StateVar =
+    StateVar(3.toByte, DataType.Address.id.toByte)
+  val isActiveStateVar: StateVar =
+    StateVar(4.toByte, DataType.Boolean.id.toByte)
+  lazy val stateVarTextual: Array[Byte] =
+    Deser.serializeArrays(stateVarName.map(x => Deser.serilizeString(x)))
 
   // State Map
-  val stateMapTokenBalance = List("mapTokenBalance", "tokenIdWithAddressKey", "balance")
+  val stateMapTokenBalance =
+    List("mapTokenBalance", "tokenIdWithAddressKey", "balance")
   val stateMapLockBalance = List("mapLockBalance", "tokenIdKey", "balance")
-  val tokenBalanceMap: StateMap = StateMap(0.toByte, DataType.ShortBytes.id.toByte, DataType.Amount.id.toByte)
-  val lockBalanceMap: StateMap = StateMap(1.toByte, DataType.TokenId.id.toByte, DataType.Amount.id.toByte)
-  lazy val stateMapTextual: Array[Byte] = textualStateMap(Seq(stateMapTokenBalance, stateMapLockBalance))
+  val tokenBalanceMap: StateMap =
+    StateMap(0.toByte, DataType.ShortBytes.id.toByte, DataType.Amount.id.toByte)
+  val lockBalanceMap: StateMap =
+    StateMap(1.toByte, DataType.TokenId.id.toByte, DataType.Amount.id.toByte)
+  lazy val stateMapTextual: Array[Byte] = textualStateMap(
+    Seq(stateMapTokenBalance, stateMapLockBalance)
+  )
 
   // Initialization Trigger
   val initId: Short = 0
@@ -46,15 +95,25 @@ object ContractCrossChain {
     "regulator", // 2
     "singer" // 3
   )
-  val initDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.ShortBytes.id.toByte, DataType.Account.id.toByte)
+  val initDataType: Array[Byte] = Array(
+    DataType.PublicKey.id.toByte,
+    DataType.ShortBytes.id.toByte,
+    DataType.Account.id.toByte
+  )
   val initTriggerOpcs: Seq[Array[Byte]] = Seq(
     loadSigner ++ Array(3.toByte),
     cdbvSet ++ Array(makerStateVar.index, 3.toByte),
     cdbvSet ++ Array(witnessPublicKeyStateVar.index, 0.toByte),
     cdbvSet ++ Array(chainIdStateVar.index, 1.toByte),
-    cdbvSet ++ Array(regulatorStateVar.index, 2.toByte),
+    cdbvSet ++ Array(regulatorStateVar.index, 2.toByte)
   )
-  lazy val initTrigger: Array[Byte] = getFunctionBytes(initId, onInitTriggerType, nonReturnType, initDataType, initTriggerOpcs)
+  lazy val initTrigger: Array[Byte] = getFunctionBytes(
+    initId,
+    onInitTriggerType,
+    nonReturnType,
+    initDataType,
+    initTriggerOpcs
+  )
   val initTextualBytes: Array[Byte] = textualFunc("init", Seq(), initPara)
 
   val initSingleChainWithFreezePara: Seq[String] = Seq(
@@ -70,11 +129,21 @@ object ContractCrossChain {
     cdbvSet ++ Array(witnessPublicKeyStateVar.index, 0.toByte),
     cdbvSet ++ Array(chainIdStateVar.index, 1.toByte),
     cdbvSet ++ Array(regulatorStateVar.index, 2.toByte),
-    basicConstantGet ++ DataEntry(Array(1.toByte), DataType.Boolean).bytes ++ Array(4.toByte),
+    basicConstantGet ++ DataEntry(
+      Array(1.toByte),
+      DataType.Boolean
+    ).bytes ++ Array(4.toByte),
     cdbvSet ++ Array(isActiveStateVar.index, 4.toByte)
   )
-  lazy val initSingleChainWithFreezeTrigger: Array[Byte] = getFunctionBytes(initId, onInitTriggerType, nonReturnType, initDataType, initSingleChainWithFreezeTriggerOpcs)
-  val initSingleChainWithFreezeTextualBytes: Array[Byte] = textualFunc("init", Seq(), initSingleChainWithFreezePara)
+  lazy val initSingleChainWithFreezeTrigger: Array[Byte] = getFunctionBytes(
+    initId,
+    onInitTriggerType,
+    nonReturnType,
+    initDataType,
+    initSingleChainWithFreezeTriggerOpcs
+  )
+  val initSingleChainWithFreezeTextualBytes: Array[Byte] =
+    textualFunc("init", Seq(), initSingleChainWithFreezePara)
 
   // Deposit Trigger
   val depositId: Short = 1
@@ -84,14 +153,25 @@ object ContractCrossChain {
     "tokenId", // 2
     "tokenIdWithAddress" // 3
   )
-  val depositDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.Amount.id.toByte, DataType.TokenId.id.toByte)
+  val depositDataType: Array[Byte] = Array(
+    DataType.Address.id.toByte,
+    DataType.Amount.id.toByte,
+    DataType.TokenId.id.toByte
+  )
   val depositTriggerOpcs: Seq[Array[Byte]] = Seq(
     assertCaller ++ Array(0.toByte),
     basicConcat ++ Array(2.toByte, 0.toByte, 3.toByte),
     cdbvMapValAdd ++ Array(tokenBalanceMap.index, 3.toByte, 1.toByte)
   )
-  lazy val depositTrigger: Array[Byte] = getFunctionBytes(depositId, onDepositTriggerType, nonReturnType, depositDataType, depositTriggerOpcs)
-  val depositTextualBytes: Array[Byte] = textualFunc("deposit", Seq(), depositPara)
+  lazy val depositTrigger: Array[Byte] = getFunctionBytes(
+    depositId,
+    onDepositTriggerType,
+    nonReturnType,
+    depositDataType,
+    depositTriggerOpcs
+  )
+  val depositTextualBytes: Array[Byte] =
+    textualFunc("deposit", Seq(), depositPara)
 
   // WithDraw Trigger
   val withdrawId: Short = 2
@@ -101,14 +181,25 @@ object ContractCrossChain {
     "tokenId", // 2
     "tokenIdWithAddress" // 3
   )
-  val withdrawDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.Amount.id.toByte, DataType.TokenId.id.toByte)
+  val withdrawDataType: Array[Byte] = Array(
+    DataType.Address.id.toByte,
+    DataType.Amount.id.toByte,
+    DataType.TokenId.id.toByte
+  )
   val withdrawTriggerOpcs: Seq[Array[Byte]] = Seq(
     assertCaller ++ Array(0.toByte),
     basicConcat ++ Array(2.toByte, 0.toByte, 3.toByte),
     cdbvMapValMinus ++ Array(tokenBalanceMap.index, 3.toByte, 1.toByte)
   )
-  lazy val withdrawTrigger: Array[Byte] = getFunctionBytes(withdrawId, onWithDrawTriggerType, nonReturnType, withdrawDataType, withdrawTriggerOpcs)
-  val withdrawTextualBytes: Array[Byte] = textualFunc("withdraw", Seq(), withdrawPara)
+  lazy val withdrawTrigger: Array[Byte] = getFunctionBytes(
+    withdrawId,
+    onWithDrawTriggerType,
+    nonReturnType,
+    withdrawDataType,
+    withdrawTriggerOpcs
+  )
+  val withdrawTextualBytes: Array[Byte] =
+    textualFunc("withdraw", Seq(), withdrawPara)
 
   // Supersede Function
   val supersedeId: Short = 0
@@ -117,15 +208,23 @@ object ContractCrossChain {
     "newRegulator", // 1
     "maker" // 2
   )
-  val supersedeDataType: Array[Byte] = Array(DataType.Account.id.toByte, DataType.Account.id.toByte)
+  val supersedeDataType: Array[Byte] =
+    Array(DataType.Account.id.toByte, DataType.Account.id.toByte)
   val supersedeFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(makerStateVar.index, 2.toByte),
     assertSigner ++ Array(2.toByte),
     cdbvSet ++ Array(makerStateVar.index, 0.toByte),
     cdbvSet ++ Array(regulatorStateVar.index, 1.toByte)
   )
-  lazy val supersedeFunc: Array[Byte] = getFunctionBytes(supersedeId, publicFuncType, nonReturnType, supersedeDataType, supersedeFunctionOpcs)
-  val supersedeTextualBytes: Array[Byte] = textualFunc("supersede", Seq(), supersedePara)
+  lazy val supersedeFunc: Array[Byte] = getFunctionBytes(
+    supersedeId,
+    publicFuncType,
+    nonReturnType,
+    supersedeDataType,
+    supersedeFunctionOpcs
+  )
+  val supersedeTextualBytes: Array[Byte] =
+    textualFunc("supersede", Seq(), supersedePara)
 
   // Lock Token Function
   val lockTokenId: Short = 1
@@ -138,8 +237,13 @@ object ContractCrossChain {
     "originalChainId", // 5
     "tokenIdWithAddress" // 6
   )
-  val lockTokenDataType: Array[Byte] = Array(DataType.Address.id.toByte, DataType.Amount.id.toByte, DataType.TokenId.id.toByte, 
-                                             DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte)
+  val lockTokenDataType: Array[Byte] = Array(
+    DataType.Address.id.toByte,
+    DataType.Amount.id.toByte,
+    DataType.TokenId.id.toByte,
+    DataType.ShortBytes.id.toByte,
+    DataType.ShortBytes.id.toByte
+  )
   val lockTokenFunctionOpcs: Seq[Array[Byte]] = Seq(
     assertCaller ++ Array(0.toByte),
     cdbvrGet ++ Array(chainIdStateVar.index, 5.toByte),
@@ -148,8 +252,15 @@ object ContractCrossChain {
     cdbvMapValMinus ++ Array(tokenBalanceMap.index, 6.toByte, 1.toByte),
     cdbvMapValAdd ++ Array(lockBalanceMap.index, 2.toByte, 1.toByte)
   )
-  lazy val lockTokenFunc: Array[Byte] = getFunctionBytes(lockTokenId, publicFuncType, nonReturnType, lockTokenDataType, lockTokenFunctionOpcs)
-  val lockTokenTextualBytes: Array[Byte] = textualFunc("lockToken", Seq(), lockTokenPara)
+  lazy val lockTokenFunc: Array[Byte] = getFunctionBytes(
+    lockTokenId,
+    publicFuncType,
+    nonReturnType,
+    lockTokenDataType,
+    lockTokenFunctionOpcs
+  )
+  val lockTokenTextualBytes: Array[Byte] =
+    textualFunc("lockToken", Seq(), lockTokenPara)
 
   val lockTokenSingleChainWithFreezePara: Seq[String] = Seq(
     "userAddress", // 0
@@ -171,8 +282,15 @@ object ContractCrossChain {
     cdbvMapValMinus ++ Array(tokenBalanceMap.index, 7.toByte, 1.toByte),
     cdbvMapValAdd ++ Array(lockBalanceMap.index, 2.toByte, 1.toByte)
   )
-  lazy val lockTokenSingleChainWithFreezeFunc: Array[Byte] = getFunctionBytes(lockTokenId, publicFuncType, nonReturnType, lockTokenDataType, lockTokenSingleChainWithFreezeFunctionOpcs)
-  val lockTokenSingleChainWithFreezeTextualBytes: Array[Byte] = textualFunc("lockToken", Seq(), lockTokenSingleChainWithFreezePara)
+  lazy val lockTokenSingleChainWithFreezeFunc: Array[Byte] = getFunctionBytes(
+    lockTokenId,
+    publicFuncType,
+    nonReturnType,
+    lockTokenDataType,
+    lockTokenSingleChainWithFreezeFunctionOpcs
+  )
+  val lockTokenSingleChainWithFreezeTextualBytes: Array[Byte] =
+    textualFunc("lockToken", Seq(), lockTokenSingleChainWithFreezePara)
 
   // Unlock Token Function
   val unlockTokenId: Short = 2
@@ -191,15 +309,26 @@ object ContractCrossChain {
     "blockNumberValid", // 11
     "tokenIdWithRecipientAddress", // 12
     "msgConcat", // 13
-    "witnessPublicKey", // 14
+    "witnessPublicKey" // 14
   )
-  val unlockTokenDataType: Array[Byte] = Array(DataType.Amount.id.toByte, DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte,
-                                               DataType.TokenId.id.toByte, DataType.Address.id.toByte, DataType.Amount.id.toByte,
-                                               DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte, DataType.ShortBytes.id.toByte)
+  val unlockTokenDataType: Array[Byte] = Array(
+    DataType.Amount.id.toByte,
+    DataType.ShortBytes.id.toByte,
+    DataType.ShortBytes.id.toByte,
+    DataType.TokenId.id.toByte,
+    DataType.Address.id.toByte,
+    DataType.Amount.id.toByte,
+    DataType.ShortBytes.id.toByte,
+    DataType.ShortBytes.id.toByte,
+    DataType.ShortBytes.id.toByte
+  )
   val unlockTokenFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(chainIdStateVar.index, 9.toByte),
     assertEqual ++ Array(7.toByte, 9.toByte),
-    basicConstantGet ++ DataEntry(Longs.toByteArray(0), DataType.Amount).bytes ++ Array(10.toByte),
+    basicConstantGet ++ DataEntry(
+      Longs.toByteArray(0),
+      DataType.Amount
+    ).bytes ++ Array(10.toByte),
     compareGreater ++ Array(0.toByte, 10.toByte, 11.toByte),
     assertTrue ++ Array(11.toByte),
     basicConcat ++ Array(3.toByte, 4.toByte, 12.toByte),
@@ -213,8 +342,15 @@ object ContractCrossChain {
     cdbvMapValMinus ++ Array(lockBalanceMap.index, 3.toByte, 5.toByte),
     cdbvMapValAdd ++ Array(tokenBalanceMap.index, 12.toByte, 5.toByte)
   )
-  lazy val unlockTokenFunc: Array[Byte] = getFunctionBytes(unlockTokenId, publicFuncType, nonReturnType, unlockTokenDataType, unlockTokenFunctionOpcs)
-  val unlockTokenTextualBytes: Array[Byte] = textualFunc("unlockToken", Seq(), unlockTokenPara)
+  lazy val unlockTokenFunc: Array[Byte] = getFunctionBytes(
+    unlockTokenId,
+    publicFuncType,
+    nonReturnType,
+    unlockTokenDataType,
+    unlockTokenFunctionOpcs
+  )
+  val unlockTokenTextualBytes: Array[Byte] =
+    textualFunc("unlockToken", Seq(), unlockTokenPara)
 
   val unlockTokenSingleChainWithFreezePara: Seq[String] = Seq(
     "blockNumber", // 0
@@ -232,14 +368,17 @@ object ContractCrossChain {
     "blockNumberValid", // 12
     "tokenIdWithRecipientAddress", // 13
     "msgConcat", // 14
-    "witnessPublicKey", // 15
+    "witnessPublicKey" // 15
   )
   val unlockTokenSingleChainWithFreezeFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(isActiveStateVar.index, 9.toByte),
     assertTrue ++ Array(9.toByte),
     cdbvrGet ++ Array(chainIdStateVar.index, 10.toByte),
     assertEqual ++ Array(7.toByte, 10.toByte),
-    basicConstantGet ++ DataEntry(Longs.toByteArray(0), DataType.Amount).bytes ++ Array(11.toByte),
+    basicConstantGet ++ DataEntry(
+      Longs.toByteArray(0),
+      DataType.Amount
+    ).bytes ++ Array(11.toByte),
     compareGreater ++ Array(0.toByte, 11.toByte, 12.toByte),
     assertTrue ++ Array(12.toByte),
     basicConcat ++ Array(3.toByte, 4.toByte, 13.toByte),
@@ -253,8 +392,15 @@ object ContractCrossChain {
     cdbvMapValMinus ++ Array(lockBalanceMap.index, 3.toByte, 5.toByte),
     cdbvMapValAdd ++ Array(tokenBalanceMap.index, 13.toByte, 5.toByte)
   )
-  lazy val unlockTokenSingleChainWithFreezeFunc: Array[Byte] = getFunctionBytes(unlockTokenId, publicFuncType, nonReturnType, unlockTokenDataType, unlockTokenSingleChainWithFreezeFunctionOpcs)
-  val unlockTokenSingleChainWithFreezeTextualBytes: Array[Byte] = textualFunc("unlockToken", Seq(), unlockTokenSingleChainWithFreezePara)
+  lazy val unlockTokenSingleChainWithFreezeFunc: Array[Byte] = getFunctionBytes(
+    unlockTokenId,
+    publicFuncType,
+    nonReturnType,
+    unlockTokenDataType,
+    unlockTokenSingleChainWithFreezeFunctionOpcs
+  )
+  val unlockTokenSingleChainWithFreezeTextualBytes: Array[Byte] =
+    textualFunc("unlockToken", Seq(), unlockTokenSingleChainWithFreezePara)
 
   // Update Witness Function
   val updateWitnessId: Short = 3
@@ -266,7 +412,11 @@ object ContractCrossChain {
     "msgConcat", // 4
     "oldWitnessPublicKey" // 5
   )
-  val updateWitnessDataType: Array[Byte] = Array(DataType.PublicKey.id.toByte, DataType.Amount.id.toByte, DataType.ShortBytes.id.toByte)
+  val updateWitnessDataType: Array[Byte] = Array(
+    DataType.PublicKey.id.toByte,
+    DataType.Amount.id.toByte,
+    DataType.ShortBytes.id.toByte
+  )
   val updateWitnessFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(regulatorStateVar.index, 3.toByte),
     assertSigner ++ Array(3.toByte),
@@ -275,8 +425,15 @@ object ContractCrossChain {
     assertSig ++ Array(4.toByte, 2.toByte, 5.toByte),
     cdbvSet ++ Array(witnessPublicKeyStateVar.index, 0.toByte)
   )
-  lazy val updateWitnessFunc: Array[Byte] = getFunctionBytes(updateWitnessId, publicFuncType, nonReturnType, updateWitnessDataType, updateWitnessFunctionOpcs)
-  val updateWitnessTextualBytes: Array[Byte] = textualFunc("updateWitness", Seq(), updateWitnessPara)
+  lazy val updateWitnessFunc: Array[Byte] = getFunctionBytes(
+    updateWitnessId,
+    publicFuncType,
+    nonReturnType,
+    updateWitnessDataType,
+    updateWitnessFunctionOpcs
+  )
+  val updateWitnessTextualBytes: Array[Byte] =
+    textualFunc("updateWitness", Seq(), updateWitnessPara)
 
   val updateWitnessSingleChainWithFreezePara: Seq[String] = Seq(
     "newWitnessPublicKey", // 0
@@ -297,22 +454,38 @@ object ContractCrossChain {
     assertSig ++ Array(5.toByte, 2.toByte, 6.toByte),
     cdbvSet ++ Array(witnessPublicKeyStateVar.index, 0.toByte)
   )
-  lazy val updateWitnessSingleChainWithFreezeFunc: Array[Byte] = getFunctionBytes(updateWitnessId, publicFuncType, nonReturnType, updateWitnessDataType, updateWitnessSingleChainWithFreezeFunctionOpcs)
-  val updateWitnessSingleChainWithFreezeTextualBytes: Array[Byte] = textualFunc("updateWitness", Seq(), updateWitnessSingleChainWithFreezePara)
+  lazy val updateWitnessSingleChainWithFreezeFunc: Array[Byte] =
+    getFunctionBytes(
+      updateWitnessId,
+      publicFuncType,
+      nonReturnType,
+      updateWitnessDataType,
+      updateWitnessSingleChainWithFreezeFunctionOpcs
+    )
+  val updateWitnessSingleChainWithFreezeTextualBytes: Array[Byte] =
+    textualFunc("updateWitness", Seq(), updateWitnessSingleChainWithFreezePara)
 
   // Balance Of Function
   val balanceOfId: Short = 4
-  val balanceOfPara: Seq[String] = Seq("account", "tokenId",
-                                      "tokenIdWithAddress", "balance")
-  val balanceOfDataType: Array[Byte] = Array(DataType.Account.id.toByte, DataType.TokenId.id.toByte)
+  val balanceOfPara: Seq[String] =
+    Seq("account", "tokenId", "tokenIdWithAddress", "balance")
+  val balanceOfDataType: Array[Byte] =
+    Array(DataType.Account.id.toByte, DataType.TokenId.id.toByte)
   val balanceOfReturnType: Array[Byte] = Array(DataType.Amount.id.toByte)
   val balanceOfFunctionOpcs: Seq[Array[Byte]] = Seq(
     basicConcat ++ Array(1.toByte, 0.toByte, 2.toByte),
     cdbvrMapGetOrDefault ++ Array(tokenBalanceMap.index, 2.toByte, 3.toByte),
     returnValue ++ Array(3.toByte)
   )
-  lazy val balanceOfFunc: Array[Byte] = getFunctionBytes(balanceOfId, publicFuncType, balanceOfReturnType, balanceOfDataType, balanceOfFunctionOpcs)
-  val balanceOfTextualBytes: Array[Byte] = textualFunc("balanceOf", Seq("balance"), balanceOfPara)
+  lazy val balanceOfFunc: Array[Byte] = getFunctionBytes(
+    balanceOfId,
+    publicFuncType,
+    balanceOfReturnType,
+    balanceOfDataType,
+    balanceOfFunctionOpcs
+  )
+  val balanceOfTextualBytes: Array[Byte] =
+    textualFunc("balanceOf", Seq("balance"), balanceOfPara)
 
   // Freeze Function
   val freezeId: Short = 5
@@ -324,10 +497,19 @@ object ContractCrossChain {
   val freezeFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(makerStateVar.index, 0.toByte),
     assertSigner ++ Array(0.toByte),
-    basicConstantGet ++ DataEntry(Array(0.toByte), DataType.Boolean).bytes ++ Array(1.toByte),
+    basicConstantGet ++ DataEntry(
+      Array(0.toByte),
+      DataType.Boolean
+    ).bytes ++ Array(1.toByte),
     cdbvSet ++ Array(isActiveStateVar.index, 1.toByte)
   )
-  lazy val freezeFunc: Array[Byte] = getFunctionBytes(freezeId, publicFuncType, nonReturnType, freezeDataType, freezeFunctionOpcs)
+  lazy val freezeFunc: Array[Byte] = getFunctionBytes(
+    freezeId,
+    publicFuncType,
+    nonReturnType,
+    freezeDataType,
+    freezeFunctionOpcs
+  )
   val freezeTextualBytes: Array[Byte] = textualFunc("freeze", Seq(), freezePara)
 
   // Unfreeze Function
@@ -340,18 +522,54 @@ object ContractCrossChain {
   val unfreezeFunctionOpcs: Seq[Array[Byte]] = Seq(
     cdbvrGet ++ Array(makerStateVar.index, 0.toByte),
     assertSigner ++ Array(0.toByte),
-    basicConstantGet ++ DataEntry(Array(1.toByte), DataType.Boolean).bytes ++ Array(1.toByte),
+    basicConstantGet ++ DataEntry(
+      Array(1.toByte),
+      DataType.Boolean
+    ).bytes ++ Array(1.toByte),
     cdbvSet ++ Array(isActiveStateVar.index, 1.toByte)
   )
-  lazy val unfreezeFunc: Array[Byte] = getFunctionBytes(unfreezeId, publicFuncType, nonReturnType, unfreezeDataType, unfreezeFunctionOpcs)
-  val unfreezeTextualBytes: Array[Byte] = textualFunc("unfreeze", Seq(), unfreezePara)
+  lazy val unfreezeFunc: Array[Byte] = getFunctionBytes(
+    unfreezeId,
+    publicFuncType,
+    nonReturnType,
+    unfreezeDataType,
+    unfreezeFunctionOpcs
+  )
+  val unfreezeTextualBytes: Array[Byte] =
+    textualFunc("unfreeze", Seq(), unfreezePara)
 
   // Gen Textual
-  lazy val triggerTextual: Array[Byte] = Deser.serializeArrays(Seq(initTextualBytes, depositTextualBytes, withdrawTextualBytes))
-  lazy val descriptorTextual: Array[Byte] = Deser.serializeArrays(Seq(supersedeTextualBytes, lockTokenTextualBytes, unlockTokenTextualBytes, 
-                                                                      updateWitnessTextualBytes, balanceOfTextualBytes))
+  lazy val triggerTextual: Array[Byte] = Deser.serializeArrays(
+    Seq(initTextualBytes, depositTextualBytes, withdrawTextualBytes)
+  )
+  lazy val descriptorTextual: Array[Byte] = Deser.serializeArrays(
+    Seq(
+      supersedeTextualBytes,
+      lockTokenTextualBytes,
+      unlockTokenTextualBytes,
+      updateWitnessTextualBytes,
+      balanceOfTextualBytes
+    )
+  )
 
-  lazy val singleChainWithFreezeTriggerTextual: Array[Byte] = Deser.serializeArrays(Seq(initSingleChainWithFreezeTextualBytes, depositTextualBytes, withdrawTextualBytes))
-  lazy val singleChainWithFreezeDescriptorTextual: Array[Byte] = Deser.serializeArrays(Seq(supersedeTextualBytes, lockTokenSingleChainWithFreezeTextualBytes, unlockTokenSingleChainWithFreezeTextualBytes,
-                                                                      updateWitnessSingleChainWithFreezeTextualBytes, balanceOfTextualBytes, freezeTextualBytes, unfreezeTextualBytes))                                                
+  lazy val singleChainWithFreezeTriggerTextual: Array[Byte] =
+    Deser.serializeArrays(
+      Seq(
+        initSingleChainWithFreezeTextualBytes,
+        depositTextualBytes,
+        withdrawTextualBytes
+      )
+    )
+  lazy val singleChainWithFreezeDescriptorTextual: Array[Byte] =
+    Deser.serializeArrays(
+      Seq(
+        supersedeTextualBytes,
+        lockTokenSingleChainWithFreezeTextualBytes,
+        unlockTokenSingleChainWithFreezeTextualBytes,
+        updateWitnessSingleChainWithFreezeTextualBytes,
+        balanceOfTextualBytes,
+        freezeTextualBytes,
+        unfreezeTextualBytes
+      )
+    )
 }
