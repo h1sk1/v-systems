@@ -69,6 +69,67 @@ trait AssetSwapFunctionHelperGen extends AssetSwapContractGen with TokenContract
   val assetSwapWithoutReceiverContract: Gen[Contract] = assetSwapWithoutReceiverContractGen()
   val tokenContract: Gen[Contract] = tokenContractGen(false)
 
+  def assetSwapCreateSwap(
+    master: PrivateKeyAccount,
+    contractId: ContractAccount,
+    createSwapData: Seq[Array[Byte]],
+    attach: Array[Byte],
+    fee: Long,
+    ts: Long,
+  ): Gen[ExecuteContractFunctionTransaction] = {
+    val createSwapType = Seq(
+      DataType.Address,
+      DataType.TokenId,
+      DataType.Amount,
+      DataType.Address,
+      DataType.TokenId,
+      DataType.Amount,
+      DataType.Timestamp
+    )
+
+    for {
+      createSwap <- createSwapAssetSwapContractDataStackGen(
+        master,
+        contractId,
+        createSwapData,
+        createSwapType,
+        attach,
+        fee,
+        ts
+      )
+    } yield createSwap
+  }
+
+  def assetSwapWithoutReceiverCreateSwap(
+    master: PrivateKeyAccount,
+    contractId: ContractAccount,
+    createSwapData: Seq[Array[Byte]],
+    attach: Array[Byte],
+    fee: Long,
+    ts: Long,
+  ): Gen[ExecuteContractFunctionTransaction] = {
+    val createSwapType = Seq(
+      DataType.Address,
+      DataType.TokenId,
+      DataType.Amount,
+      DataType.TokenId,
+      DataType.Amount,
+      DataType.Timestamp
+    )
+
+    for {
+      createSwap <- createSwapAssetSwapContractDataStackGen(
+        master,
+        contractId,
+        createSwapData,
+        createSwapType,
+        attach,
+        fee,
+        ts
+      )
+    } yield createSwap
+  }
+
   def createABTokenAndInitAssetSwap(
     totalSupplyA: Long, unityA: Long, issueAmountA: Long,
     totalSupplyB: Long, unityB: Long, issueAmountB: Long,
@@ -147,6 +208,84 @@ trait AssetSwapFunctionHelperGen extends AssetSwapContractGen with TokenContract
     val contractTokenBBalanceKey = ByteStr(Bytes.concat(tokenBId.arr, assetSwapContractId))
 
     (contractTokenABalanceKey, contractTokenBBalanceKey)
+  }
+
+  def getTokenBalanceStateMapKeys(
+    assetSwapContractId: Array[Byte],
+    tokenATokenId: Array[Byte],
+    tokenBTokenId: Array[Byte],
+    masterBytes: Array[Byte],
+    userBytes: Array[Byte]): (ByteStr, ByteStr, ByteStr, ByteStr) = {
+      // StateMap Keys
+      val masterTokenABalanceKey = ByteStr(
+        Bytes.concat(
+          assetSwapContractId,
+          Array(0.toByte), // state map index
+          DataEntry.create(
+            DataEntry(
+              tokenATokenId,
+              DataType.TokenId
+            ).data ++ DataEntry(
+              masterBytes,
+              DataType.Address
+            ).data,
+            DataType.ShortBytes
+          ).right.get.bytes
+        )
+      )
+
+      val masterTokenBBalanceKey = ByteStr(
+        Bytes.concat(
+          assetSwapContractId,
+          Array(0.toByte), // state map index
+          DataEntry.create(
+            DataEntry(
+              tokenBTokenId,
+              DataType.TokenId
+            ).data ++ DataEntry(
+              masterBytes,
+              DataType.Address
+            ).data,
+            DataType.ShortBytes
+          ).right.get.bytes
+        )
+      )
+
+      val userTokenABalanceKey = ByteStr(
+        Bytes.concat(
+          assetSwapContractId,
+          Array(0.toByte), // state map index
+          DataEntry.create(
+            DataEntry(
+              tokenATokenId,
+              DataType.TokenId
+            ).data ++ DataEntry(
+              userBytes,
+              DataType.Address
+            ).data,
+            DataType.ShortBytes
+          ).right.get.bytes
+        )
+      )
+
+      val userTokenBBalanceKey = ByteStr(
+        Bytes.concat(
+          assetSwapContractId,
+          Array(0.toByte), // state map index
+          DataEntry.create(
+            DataEntry(
+              tokenBTokenId,
+              DataType.TokenId
+            ).data ++ DataEntry(
+              userBytes,
+              DataType.Address
+            ).data,
+            DataType.ShortBytes
+          ).right.get.bytes
+        )
+      )
+
+      (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey)
   }
 
   def getUserTokenBalanceKeys(tokenAContractId: Array[Byte], tokenBContractId: Array[Byte], master: PublicKeyAccount, user: PublicKeyAccount): (ByteStr, ByteStr) = {

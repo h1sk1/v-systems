@@ -30,7 +30,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     RegisterContractTransaction, RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
-    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long)] = for {
     (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwap(
@@ -43,13 +44,16 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         1000, // deposit amount of token A
         1000 // deposit amount of token B
       )
+
+    // Random withdraw token amount of token A
+    withdrawTokenAAmount = Math.abs(scala.util.Random.nextLong() % 1000) + 1
     // withdraw token A
     withdrawTokenA <- withdrawToken(
       master,
       registeredTokenAContract.contractId,
       registeredAssetSwapContract.contractId.bytes.arr,
       master.toAddress.bytes.arr,
-      10L, // withdraw amount of token A
+      withdrawTokenAAmount, // withdraw amount of token A
       fee,
       ts + 7
     )
@@ -59,12 +63,12 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       registeredTokenBContract.contractId,
       registeredAssetSwapContract.contractId.bytes.arr,
       user.toAddress.bytes.arr,
-      10L, // withdraw amount of token B
+      1000L, // withdraw amount of token B
       fee,
       ts + 8
     )
   } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
-  issueTokenA, issueTokenB, depositAToken, depositBToken, withdrawTokenA, withdrawTokenB)
+  issueTokenA, issueTokenB, depositAToken, depositBToken, withdrawTokenA, withdrawTokenB, withdrawTokenAAmount)
 
   property("asset swap able to withdraw token A and token B") {
     forAll(preconditionsAssetSwapContractAndWithdrawToken) { case (
@@ -78,7 +82,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       depositAToken: ExecuteContractFunctionTransaction,
       depositBToken: ExecuteContractFunctionTransaction,
       withdrawTokenA: ExecuteContractFunctionTransaction,
-      withdrawTokenB: ExecuteContractFunctionTransaction) =>
+      withdrawTokenB: ExecuteContractFunctionTransaction,
+      withdrawTokenAAmount: Long) =>
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
@@ -115,11 +120,11 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
           user
         )
 
-        newState.tokenAccountBalance(userTokenABalanceKey) shouldBe 10L
-        newState.tokenAccountBalance(contractTokenABalanceKey) shouldBe 990L
+        newState.tokenAccountBalance(userTokenABalanceKey) shouldBe withdrawTokenAAmount
+        newState.tokenAccountBalance(contractTokenABalanceKey) shouldBe (1000L - withdrawTokenAAmount)
 
-        newState.tokenAccountBalance(userTokenBBalanceKey) shouldBe 10L
-        newState.tokenAccountBalance(contractTokenBBalanceKey) shouldBe 990L
+        newState.tokenAccountBalance(userTokenBBalanceKey) shouldBe 1000L
+        newState.tokenAccountBalance(contractTokenBBalanceKey) shouldBe 0L
       }
     }
   }
@@ -129,7 +134,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     RegisterContractTransaction, RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
-    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long)] = for {
     (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwap(
@@ -149,29 +155,21 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     tokenBTokenId = tokenIdFromBytes(tokenBContractId, Ints.toByteArray(0)).explicitGet()
 
     // create swap
+    // Random swap token amount of token A
+    tokenASwapAmount = Math.abs(scala.util.Random.nextLong() % 1000) + 1
     createSwapData = Seq(
       master.toAddress.bytes.arr,
       tokenATokenId.arr,
-      Longs.toByteArray(10L), // swap amount for token A
+      Longs.toByteArray(tokenASwapAmount), // swap amount for token A
       user.toAddress.bytes.arr,
       tokenBTokenId.arr,
-      Longs.toByteArray(20L), // swap amount for token B
+      Longs.toByteArray(1000L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -189,7 +187,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       ts
     )
   } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
-  issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, finishSwap)
+  issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, finishSwap, tokenASwapAmount)
 
   property("asset swap able to swap token A and token B") {
     forAll(preconditionsAssetSwapContractAndSwap) { case (
@@ -203,7 +201,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       depositAToken: ExecuteContractFunctionTransaction,
       depositBToken: ExecuteContractFunctionTransaction,
       createSwap: ExecuteContractFunctionTransaction,
-      finishSwap: ExecuteContractFunctionTransaction) =>
+      finishSwap: ExecuteContractFunctionTransaction,
+      tokenASwapAmount: Long) =>
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
@@ -230,88 +229,28 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         val tokenBTokenId = tokenIdFromBytes(tokenBContractId, Ints.toByteArray(0)).explicitGet().arr
         
         // StateMap Keys
-        val masterTokenABalanceKey = ByteStr(
-          Bytes.concat(
+        val (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey) = getTokenBalanceStateMapKeys(
             assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
+            tokenATokenId,
+            tokenBTokenId,
+            masterBytes,
+            userBytes
           )
-        )
-
-        val masterTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenABalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        newState.contractNumInfo(masterTokenABalanceKey) shouldBe 1000L - 10L // original balance - swap token A amount
-        newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 20L // swap token B amount
-        newState.contractNumInfo(userTokenABalanceKey) shouldBe 10L // swap token A amount
-        newState.contractNumInfo(userTokenBBalanceKey) shouldBe 1000L - 20L // original balance - swap token B amount
+        
+        newState.contractNumInfo(masterTokenABalanceKey) shouldBe 1000L - tokenASwapAmount // original balance - swap token A amount
+        newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 1000L // swap token B amount
+        newState.contractNumInfo(userTokenABalanceKey) shouldBe tokenASwapAmount // swap token A amount
+        newState.contractNumInfo(userTokenBBalanceKey) shouldBe 0L // original balance - swap token B amount
 
         val contractStateMapKeys = getAssetSwapContractStateMapKeys(assetSwapContractId, createSwap.id.arr)
 
         newState.contractInfo(contractStateMapKeys(0)) shouldEqual Some(DataEntry.create(masterBytes, DataType.Address).right.get) // token A address
         newState.contractInfo(contractStateMapKeys(1)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token A id
-        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(10L), DataType.Amount).right.get) // token A amount
+        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(tokenASwapAmount), DataType.Amount).right.get) // token A amount
         newState.contractInfo(contractStateMapKeys(3)) shouldEqual Some(DataEntry.create(Longs.toByteArray(genesis.timestamp + 100), DataType.Timestamp).right.get) // expiration time
         newState.contractInfo(contractStateMapKeys(4)) shouldEqual Some(DataEntry.create(userBytes, DataType.Address).right.get) // token B address
         newState.contractInfo(contractStateMapKeys(5)) shouldEqual Some(DataEntry.create(tokenBTokenId, DataType.TokenId).right.get) // token B id
-        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(20L), DataType.Amount).right.get) // token B amount
+        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(1000L), DataType.Amount).right.get) // token B amount
         newState.contractInfo(contractStateMapKeys(7)) shouldEqual Some(DataEntry.create(Array(0.toByte), DataType.Boolean).right.get) // swap status
       }
     }
@@ -351,20 +290,10 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -423,73 +352,13 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         val tokenBTokenId = tokenIdFromBytes(tokenBContractId, Ints.toByteArray(0)).explicitGet().arr
 
         // StateMap Keys
-        val masterTokenABalanceKey = ByteStr(
-          Bytes.concat(
+        val (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey) = getTokenBalanceStateMapKeys(
             assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
+            tokenATokenId,
+            tokenBTokenId,
+            masterBytes,
+            userBytes
           )
-        )
-
-        val masterTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenABalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
 
         newState.contractNumInfo(masterTokenABalanceKey) shouldBe 1000L 
         newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 0L
@@ -506,7 +375,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     RegisterContractTransaction, RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
-    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long)] = for {
     (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwapWithoutReceiver(
@@ -519,13 +389,16 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         1000, // deposit amount of token A
         1000 // deposit amount of token B
       )
+
+    // Random withdraw token amount of token A
+    withdrawTokenAAmount = Math.abs(scala.util.Random.nextLong() % 1000) + 1
     // withdraw token A
     withdrawTokenA <- withdrawToken(
       master,
       registeredTokenAContract.contractId,
       registeredAssetSwapContract.contractId.bytes.arr,
       master.toAddress.bytes.arr,
-      10L, // withdraw amount of token A
+      withdrawTokenAAmount, // withdraw amount of token A
       fee,
       ts + 7
     )
@@ -535,12 +408,12 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       registeredTokenBContract.contractId,
       registeredAssetSwapContract.contractId.bytes.arr,
       user.toAddress.bytes.arr,
-      10L, // withdraw amount of token B
+      1000L, // withdraw amount of token B
       fee,
       ts + 8
     )
   } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
-  issueTokenA, issueTokenB, depositAToken, depositBToken, withdrawTokenA, withdrawTokenB)
+  issueTokenA, issueTokenB, depositAToken, depositBToken, withdrawTokenA, withdrawTokenB, withdrawTokenAAmount)
 
   property("asset swap without receiver able to withdraw token A and token B") {
     forAll(preconditionsAssetSwapWithoutReceiverContractAndWithdrawToken) { case (
@@ -554,7 +427,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       depositAToken: ExecuteContractFunctionTransaction,
       depositBToken: ExecuteContractFunctionTransaction,
       withdrawTokenA: ExecuteContractFunctionTransaction,
-      withdrawTokenB: ExecuteContractFunctionTransaction) =>
+      withdrawTokenB: ExecuteContractFunctionTransaction,
+      withdrawTokenAAmount: Long) =>
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
@@ -591,11 +465,11 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
           user
         )
 
-        newState.tokenAccountBalance(userTokenABalanceKey) shouldBe 10L
-        newState.tokenAccountBalance(contractTokenABalanceKey) shouldBe 990L
+        newState.tokenAccountBalance(userTokenABalanceKey) shouldBe withdrawTokenAAmount
+        newState.tokenAccountBalance(contractTokenABalanceKey) shouldBe (1000L - withdrawTokenAAmount)
 
-        newState.tokenAccountBalance(userTokenBBalanceKey) shouldBe 10L
-        newState.tokenAccountBalance(contractTokenBBalanceKey) shouldBe 990L
+        newState.tokenAccountBalance(userTokenBBalanceKey) shouldBe 1000L
+        newState.tokenAccountBalance(contractTokenBBalanceKey) shouldBe 0L
       }
     }
   }
@@ -605,7 +479,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     RegisterContractTransaction, RegisterContractTransaction, RegisterContractTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
     ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
-    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction)] = for {
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long)] = for {
     (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
     issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach) <-
       createABTokenAndInitAssetSwapWithoutReceiver(
@@ -625,27 +500,20 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     tokenBTokenId = tokenIdFromBytes(tokenBContractId, Ints.toByteArray(0)).explicitGet()
 
     // create swap
+    // Random swap token amount of token A
+    tokenASwapAmount = Math.abs(scala.util.Random.nextLong() % 1000) + 1
     createSwapData = Seq(
       master.toAddress.bytes.arr,
       tokenATokenId.arr,
-      Longs.toByteArray(10L), // swap amount for token A
+      Longs.toByteArray(tokenASwapAmount), // swap amount for token A
       tokenBTokenId.arr,
-      Longs.toByteArray(20L), // swap amount for token B
+      Longs.toByteArray(1000L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -663,7 +531,7 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       ts
     )
   } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
-  issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, finishSwap)
+  issueTokenA, issueTokenB, depositAToken, depositBToken, createSwap, finishSwap, tokenASwapAmount)
 
   property("asset swap without receiver able to swap token A and token B") {
     forAll(preconditionsAssetSwapWithoutReceiverContractAndSwap) { case (
@@ -677,7 +545,8 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       depositAToken: ExecuteContractFunctionTransaction,
       depositBToken: ExecuteContractFunctionTransaction,
       createSwap: ExecuteContractFunctionTransaction,
-      finishSwap: ExecuteContractFunctionTransaction) =>
+      finishSwap: ExecuteContractFunctionTransaction,
+      tokenASwapAmount: Long) =>
         assertDiffAndStateCorrectBlockTime(
           Seq(
             TestBlock.create(
@@ -704,88 +573,28 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         val tokenBTokenId = tokenIdFromBytes(tokenBContractId, Ints.toByteArray(0)).explicitGet().arr
         
         // StateMap Keys
-        val masterTokenABalanceKey = ByteStr(
-          Bytes.concat(
+       val (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey) = getTokenBalanceStateMapKeys(
             assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
+            tokenATokenId,
+            tokenBTokenId,
+            masterBytes,
+            userBytes
           )
-        )
 
-        val masterTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenABalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        newState.contractNumInfo(masterTokenABalanceKey) shouldBe 1000L - 10L // original balance - swap token A amount
-        newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 20L // swap token B amount
-        newState.contractNumInfo(userTokenABalanceKey) shouldBe 10L // swap token A amount
-        newState.contractNumInfo(userTokenBBalanceKey) shouldBe 1000L - 20L // original balance - swap token B amount
+        newState.contractNumInfo(masterTokenABalanceKey) shouldBe 1000L - tokenASwapAmount // original balance - swap token A amount
+        newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 1000L // swap token B amount
+        newState.contractNumInfo(userTokenABalanceKey) shouldBe tokenASwapAmount // swap token A amount
+        newState.contractNumInfo(userTokenBBalanceKey) shouldBe 0L // original balance - swap token B amount
 
         val contractStateMapKeys = getAssetSwapContractStateMapKeys(assetSwapWithoutReceiverContractId, createSwap.id.arr)
 
         newState.contractInfo(contractStateMapKeys(0)) shouldEqual Some(DataEntry.create(masterBytes, DataType.Address).right.get) // token A address
         newState.contractInfo(contractStateMapKeys(1)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token A id
-        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(10L), DataType.Amount).right.get) // token A amount
+        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(tokenASwapAmount), DataType.Amount).right.get) // token A amount
         newState.contractInfo(contractStateMapKeys(3)) shouldEqual Some(DataEntry.create(Longs.toByteArray(genesis.timestamp + 100), DataType.Timestamp).right.get) // expiration time
         // newState.contractInfo(contractStateMapKeys(4)) shouldEqual Some(DataEntry.create(userBytes, DataType.Address).right.get) // token B address (Asset Swap without receiver contract does not have token B address)
         newState.contractInfo(contractStateMapKeys(5)) shouldEqual Some(DataEntry.create(tokenBTokenId, DataType.TokenId).right.get) // token B id
-        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(20L), DataType.Amount).right.get) // token B amount
+        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(1000L), DataType.Amount).right.get) // token B amount
         newState.contractInfo(contractStateMapKeys(7)) shouldEqual Some(DataEntry.create(Array(0.toByte), DataType.Boolean).right.get) // swap status
       }
     }
@@ -824,19 +633,10 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -895,73 +695,13 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         val tokenBTokenId = tokenIdFromBytes(tokenBContractId, Ints.toByteArray(0)).explicitGet().arr
 
         // StateMap Keys
-        val masterTokenABalanceKey = ByteStr(
-          Bytes.concat(
+        val (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey) = getTokenBalanceStateMapKeys(
             assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
+            tokenATokenId,
+            tokenBTokenId,
+            masterBytes,
+            userBytes
           )
-        )
-
-        val masterTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                masterBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenABalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenATokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
-
-        val userTokenBBalanceKey = ByteStr(
-          Bytes.concat(
-            assetSwapWithoutReceiverContractId,
-            Array(0.toByte), // state map index
-            DataEntry.create(
-              DataEntry(
-                tokenBTokenId,
-                DataType.TokenId
-              ).data ++ DataEntry(
-                userBytes,
-                DataType.Address
-              ).data,
-              DataType.ShortBytes
-            ).right.get.bytes
-          )
-        )
 
         newState.contractNumInfo(masterTokenABalanceKey) shouldBe 1000L
         newState.contractNumInfo(masterTokenBBalanceKey) shouldBe 0L
@@ -1004,19 +744,10 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
