@@ -129,6 +129,37 @@ trait AssetSwapFunctionHelperGen extends AssetSwapContractGen with TokenContract
       )
     } yield createSwap
   }
+  
+  def createSameTokenAndInitAssetSwap(
+    totalSupplyA: Long, unityA: Long, issueAmountA: Long, sendTokenAAmount: Long,
+    tokenADepositAmount: Long, tokenBDepositAmount: Long): Gen[(
+    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    RegisterContractTransaction, RegisterContractTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long, Long, String, Array[Byte])] = for {
+    (master, ts, fee) <- basicContractTestGen()
+    genesis <- genesisAssetSwapContractGen(master, ts)
+    user <- accountGen
+    genesis2 <- genesisAssetSwapContractGen(user, ts)
+    tokenContractTemplate <- tokenContract
+    assetSwapContractTemplate <- assetSwapContract
+    description <- validDescStringGen
+    attach <- genBoundedString(2, ExecuteContractFunctionTransaction.MaxDescriptionSize)
+    // Register asset swap contract
+    registeredAssetSwapContract <- registerAssetSwapContractGen(master, assetSwapContractTemplate, description, fee + 10000000000L, ts)
+    assetSwapContractId = registeredAssetSwapContract.contractId
+    // Register and deposit token for master 
+    initTokenADataStack: Seq[DataEntry] <- initTokenDataStackGen(totalSupplyA, unityA, "init")
+    registeredTokenAContract <- registerTokenGen(master, tokenContractTemplate, initTokenADataStack, description, fee + 10000000000L, ts + 1)
+    tokenAContractId = registeredTokenAContract.contractId
+    issueTokenA <- issueTokenGen(master, tokenAContractId, issueAmountA, attach, fee, ts + 2)
+    depositAToken <- depositToken(master, tokenAContractId, master.toAddress.bytes.arr, assetSwapContractId.bytes.arr, tokenADepositAmount, fee, ts + 3)
+    // Deposit token for user
+    sendToken <- sendTokenGen(master, tokenAContractId, false, user.toAddress, tokenBDepositAmount, attach, fee, ts + 4)
+    depositBToken <- depositToken(user, tokenAContractId, user.toAddress.bytes.arr, assetSwapContractId.bytes.arr, tokenBDepositAmount, fee, ts + 5)
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract,
+      issueTokenA, depositAToken, sendToken, depositBToken, ts, fee, description, attach)
 
   def createABTokenAndInitAssetSwap(
     totalSupplyA: Long, unityA: Long, issueAmountA: Long,
@@ -165,6 +196,38 @@ trait AssetSwapFunctionHelperGen extends AssetSwapContractGen with TokenContract
   } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract, registeredTokenBContract,
       issueTokenA, issueTokenB, depositAToken, depositBToken, ts, fee, description, attach)
   
+  def createSameTokenAndInitAssetSwapWithoutReceiver(
+    totalSupplyA: Long, unityA: Long, issueAmountA: Long, sendTokenAAmount: Long,
+    tokenADepositAmount: Long, tokenBDepositAmount: Long): Gen[(
+    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    RegisterContractTransaction, RegisterContractTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long, Long, String, Array[Byte])] = for {
+    (master, ts, fee) <- basicContractTestGen()
+    genesis <- genesisAssetSwapContractGen(master, ts)
+    user <- accountGen
+    genesis2 <- genesisAssetSwapContractGen(user, ts)
+    tokenContractTemplate <- tokenContract
+    assetSwapWithoutReceiverContractTemplate <- assetSwapWithoutReceiverContract
+    description <- validDescStringGen
+    attach <- genBoundedString(2, ExecuteContractFunctionTransaction.MaxDescriptionSize)
+    // Register asset swap contract
+    registeredAssetSwapWithoutReceiverContract <- registerAssetSwapContractGen(master, assetSwapWithoutReceiverContractTemplate, description, fee + 10000000000L, ts)
+    assetSwapWithoutReceiverContractId = registeredAssetSwapWithoutReceiverContract.contractId
+    // Register and deposit token for master 
+    initTokenADataStack: Seq[DataEntry] <- initTokenDataStackGen(totalSupplyA, unityA, "init")
+    registeredTokenAContract <- registerTokenGen(master, tokenContractTemplate, initTokenADataStack, description, fee + 10000000000L, ts + 1)
+    tokenAContractId = registeredTokenAContract.contractId
+    issueTokenA <- issueTokenGen(master, tokenAContractId, issueAmountA, attach, fee, ts + 2)
+    depositAToken <- depositToken(master, tokenAContractId, master.toAddress.bytes.arr, assetSwapWithoutReceiverContractId.bytes.arr, tokenADepositAmount, fee, ts + 3)
+    // Deposit token for user
+    sendToken <- sendTokenGen(master, tokenAContractId, false, user.toAddress, tokenBDepositAmount, attach, fee, ts + 4)
+    depositBToken <- depositToken(user, tokenAContractId, user.toAddress.bytes.arr, assetSwapWithoutReceiverContractId.bytes.arr, tokenBDepositAmount, fee, ts + 5)
+  } yield (genesis, genesis2, master, user, registeredAssetSwapWithoutReceiverContract, registeredTokenAContract,
+      issueTokenA, depositAToken, sendToken, depositBToken, ts, fee, description, attach)
+
+
   def createABTokenAndInitAssetSwapWithoutReceiver(
     totalSupplyA: Long, unityA: Long, issueAmountA: Long,
     totalSupplyB: Long, unityB: Long, issueAmountB: Long,

@@ -256,6 +256,121 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
     }
   }
 
+  val preconditionsAssetSwapContractAndSwapSameToken: Gen[(
+    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    RegisterContractTransaction, RegisterContractTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long)] = for {
+    (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract,
+    issueTokenA, depositAToken, sendToken, depositBToken, ts, fee, description, attach) <-
+      createSameTokenAndInitAssetSwap(
+        2000, // total supply of token A
+        1, // unity of token A
+        2000, // issue amount of token A
+        1000, // send token A amount to user
+        1000, // deposit amount for master
+        1000 // deposit amount for user
+      )
+
+    tokenAContractId = registeredTokenAContract.contractId.bytes.arr
+    tokenATokenId = tokenIdFromBytes(tokenAContractId, Ints.toByteArray(0)).explicitGet()
+
+    // create swap
+    // Random swap token amount of token A
+    tokenASwapAmount = Math.abs(scala.util.Random.nextLong() % 1000) + 1
+    createSwapData = Seq(
+      master.toAddress.bytes.arr,
+      tokenATokenId.arr,
+      Longs.toByteArray(tokenASwapAmount), // swap amount for master
+      user.toAddress.bytes.arr,
+      tokenATokenId.arr,
+      Longs.toByteArray(1000L), // swap amount for user
+      Longs.toByteArray(ts + 100) // expiration time
+    )
+    createSwap <- assetSwapCreateSwap(
+      master,
+      registeredAssetSwapContract.contractId,
+      createSwapData,
+      attach,
+      fee,
+      ts
+    )
+    
+    finishSwapData = Seq(createSwap.id.arr)
+    finishSwapType = Seq(DataType.ShortBytes)
+    finishSwap <- finishSwapAssetSwapContractDataStackGen(
+      user,
+      registeredAssetSwapContract.contractId,
+      finishSwapData,
+      finishSwapType,
+      attach,
+      fee,
+      ts
+    )
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract,
+  issueTokenA, depositAToken, sendToken, depositBToken, createSwap, finishSwap, tokenASwapAmount)
+
+  property("asset swap able to swap same token") {
+    forAll(preconditionsAssetSwapContractAndSwapSameToken) { case (
+      genesis: GenesisTransaction, genesis2: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      registeredAssetSwapContract: RegisterContractTransaction,
+      registeredTokenAContract: RegisterContractTransaction,
+      issueTokenA: ExecuteContractFunctionTransaction,
+      depositAToken: ExecuteContractFunctionTransaction,
+      sendToken: ExecuteContractFunctionTransaction,
+      depositBToken: ExecuteContractFunctionTransaction,
+      createSwap: ExecuteContractFunctionTransaction,
+      finishSwap: ExecuteContractFunctionTransaction,
+      tokenASwapAmount: Long) =>
+        assertDiffAndStateCorrectBlockTime(
+          Seq(
+            TestBlock.create(
+              genesis.timestamp, Seq(genesis, genesis2)),
+              TestBlock.create(registeredAssetSwapContract.timestamp, Seq(
+                registeredAssetSwapContract, registeredTokenAContract,
+                issueTokenA, depositAToken, sendToken, depositBToken))),
+          TestBlock.createWithTxStatus(
+            finishSwap.timestamp,
+            Seq(createSwap, finishSwap),
+            TransactionStatus.Success)) { (blockDiff, newState) =>
+
+        blockDiff.txsDiff.txStatus shouldBe TransactionStatus.Success
+
+        val masterBytes = genesis.recipient.bytes.arr
+        val userBytes = genesis2.recipient.bytes.arr
+        val assetSwapContractId = registeredAssetSwapContract.contractId.bytes.arr
+        val tokenAContractId = registeredTokenAContract.contractId.bytes.arr
+        val tokenATokenId = tokenIdFromBytes(tokenAContractId, Ints.toByteArray(0)).explicitGet().arr
+        
+        // StateMap Keys
+        val (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey) = getTokenBalanceStateMapKeys(
+            assetSwapContractId,
+            tokenATokenId,
+            tokenATokenId,
+            masterBytes,
+            userBytes
+          )
+        
+        newState.contractNumInfo(masterTokenABalanceKey) shouldBe 2000L - tokenASwapAmount // original balance - swap token A amount
+        newState.contractNumInfo(userTokenABalanceKey) shouldBe tokenASwapAmount // swap token A amount
+
+        val contractStateMapKeys = getAssetSwapContractStateMapKeys(assetSwapContractId, createSwap.id.arr)
+
+        newState.contractInfo(contractStateMapKeys(0)) shouldEqual Some(DataEntry.create(masterBytes, DataType.Address).right.get) // token A address
+        newState.contractInfo(contractStateMapKeys(1)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token A id
+        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(tokenASwapAmount), DataType.Amount).right.get) // token A amount
+        newState.contractInfo(contractStateMapKeys(3)) shouldEqual Some(DataEntry.create(Longs.toByteArray(genesis.timestamp + 100), DataType.Timestamp).right.get) // expiration time
+        newState.contractInfo(contractStateMapKeys(4)) shouldEqual Some(DataEntry.create(userBytes, DataType.Address).right.get) // token B address
+        newState.contractInfo(contractStateMapKeys(5)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token B id
+        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(1000L), DataType.Amount).right.get) // token B amount
+        newState.contractInfo(contractStateMapKeys(7)) shouldEqual Some(DataEntry.create(Array(0.toByte), DataType.Boolean).right.get) // swap status
+      }
+    }
+  }
+
   val preconditionsAssetSwapContractAndExpireWithdraw: Gen[(
     GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
     RegisterContractTransaction, RegisterContractTransaction, RegisterContractTransaction,
@@ -594,6 +709,120 @@ class ExecuteAssetSwapContractValidDiffTest extends PropSpec
         newState.contractInfo(contractStateMapKeys(3)) shouldEqual Some(DataEntry.create(Longs.toByteArray(genesis.timestamp + 100), DataType.Timestamp).right.get) // expiration time
         // newState.contractInfo(contractStateMapKeys(4)) shouldEqual Some(DataEntry.create(userBytes, DataType.Address).right.get) // token B address (Asset Swap without receiver contract does not have token B address)
         newState.contractInfo(contractStateMapKeys(5)) shouldEqual Some(DataEntry.create(tokenBTokenId, DataType.TokenId).right.get) // token B id
+        newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(1000L), DataType.Amount).right.get) // token B amount
+        newState.contractInfo(contractStateMapKeys(7)) shouldEqual Some(DataEntry.create(Array(0.toByte), DataType.Boolean).right.get) // swap status
+      }
+    }
+  }
+
+  val preconditionsAssetSwapWithoutReceiverContractAndSwapSameToken: Gen[(
+    GenesisTransaction, GenesisTransaction, PrivateKeyAccount, PrivateKeyAccount,
+    RegisterContractTransaction, RegisterContractTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    ExecuteContractFunctionTransaction, ExecuteContractFunctionTransaction,
+    Long)] = for {
+    (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract,
+    issueTokenA, depositAToken, sendToken, depositBToken, ts, fee, description, attach) <-
+      createSameTokenAndInitAssetSwapWithoutReceiver(
+        2000, // total supply of token A
+        1, // unity of token A
+        2000, // issue amount of token A
+        1000, // send token A amount to user
+        1000, // deposit amount for master
+        1000 // deposit amount for user
+      )
+
+    tokenAContractId = registeredTokenAContract.contractId.bytes.arr
+    tokenATokenId = tokenIdFromBytes(tokenAContractId, Ints.toByteArray(0)).explicitGet()
+
+    // create swap
+    // Random swap token amount of token A
+    tokenASwapAmount = Math.abs(scala.util.Random.nextLong() % 1000) + 1
+    createSwapData = Seq(
+      master.toAddress.bytes.arr,
+      tokenATokenId.arr,
+      Longs.toByteArray(tokenASwapAmount), // swap amount for master
+      tokenATokenId.arr,
+      Longs.toByteArray(1000L), // swap amount for user
+      Longs.toByteArray(ts + 100) // expiration time
+    )
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
+      master,
+      registeredAssetSwapContract.contractId,
+      createSwapData,
+      attach,
+      fee,
+      ts
+    )
+    
+    finishSwapData = Seq(createSwap.id.arr)
+    finishSwapType = Seq(DataType.ShortBytes)
+    finishSwap <- finishSwapAssetSwapContractDataStackGen(
+      user,
+      registeredAssetSwapContract.contractId,
+      finishSwapData,
+      finishSwapType,
+      attach,
+      fee,
+      ts
+    )
+  } yield (genesis, genesis2, master, user, registeredAssetSwapContract, registeredTokenAContract,
+  issueTokenA, depositAToken, sendToken, depositBToken, createSwap, finishSwap, tokenASwapAmount)
+
+  property("asset swap without receiver able to swap same token") {
+    forAll(preconditionsAssetSwapWithoutReceiverContractAndSwapSameToken) { case (
+      genesis: GenesisTransaction, genesis2: GenesisTransaction,
+      master: PrivateKeyAccount, user: PrivateKeyAccount,
+      registeredAssetSwapContract: RegisterContractTransaction,
+      registeredTokenAContract: RegisterContractTransaction,
+      issueTokenA: ExecuteContractFunctionTransaction,
+      depositAToken: ExecuteContractFunctionTransaction,
+      sendToken: ExecuteContractFunctionTransaction,
+      depositBToken: ExecuteContractFunctionTransaction,
+      createSwap: ExecuteContractFunctionTransaction,
+      finishSwap: ExecuteContractFunctionTransaction,
+      tokenASwapAmount: Long) =>
+        assertDiffAndStateCorrectBlockTime(
+          Seq(
+            TestBlock.create(
+              genesis.timestamp, Seq(genesis, genesis2)),
+              TestBlock.create(registeredAssetSwapContract.timestamp, Seq(
+                registeredAssetSwapContract, registeredTokenAContract,
+                issueTokenA, depositAToken, sendToken, depositBToken))),
+          TestBlock.createWithTxStatus(
+            finishSwap.timestamp,
+            Seq(createSwap, finishSwap),
+            TransactionStatus.Success)) { (blockDiff, newState) =>
+
+        blockDiff.txsDiff.txStatus shouldBe TransactionStatus.Success
+
+        val masterBytes = genesis.recipient.bytes.arr
+        val userBytes = genesis2.recipient.bytes.arr
+        val assetSwapContractId = registeredAssetSwapContract.contractId.bytes.arr
+        val tokenAContractId = registeredTokenAContract.contractId.bytes.arr
+        val tokenATokenId = tokenIdFromBytes(tokenAContractId, Ints.toByteArray(0)).explicitGet().arr
+        
+        // StateMap Keys
+        val (masterTokenABalanceKey, masterTokenBBalanceKey, userTokenABalanceKey, userTokenBBalanceKey) = getTokenBalanceStateMapKeys(
+            assetSwapContractId,
+            tokenATokenId,
+            tokenATokenId,
+            masterBytes,
+            userBytes
+          )
+        
+        newState.contractNumInfo(masterTokenABalanceKey) shouldBe 2000L - tokenASwapAmount // original balance - swap token A amount
+        newState.contractNumInfo(userTokenABalanceKey) shouldBe tokenASwapAmount // swap token A amount
+
+        val contractStateMapKeys = getAssetSwapContractStateMapKeys(assetSwapContractId, createSwap.id.arr)
+
+        newState.contractInfo(contractStateMapKeys(0)) shouldEqual Some(DataEntry.create(masterBytes, DataType.Address).right.get) // token A address
+        newState.contractInfo(contractStateMapKeys(1)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token A id
+        newState.contractInfo(contractStateMapKeys(2)) shouldEqual Some(DataEntry.create(Longs.toByteArray(tokenASwapAmount), DataType.Amount).right.get) // token A amount
+        newState.contractInfo(contractStateMapKeys(3)) shouldEqual Some(DataEntry.create(Longs.toByteArray(genesis.timestamp + 100), DataType.Timestamp).right.get) // expiration time
+        // newState.contractInfo(contractStateMapKeys(4)) shouldEqual Some(DataEntry.create(userBytes, DataType.Address).right.get) // token B address  (Asset Swap without receiver contract does not have token B address)
+        newState.contractInfo(contractStateMapKeys(5)) shouldEqual Some(DataEntry.create(tokenATokenId, DataType.TokenId).right.get) // token B id
         newState.contractInfo(contractStateMapKeys(6)) shouldEqual Some(DataEntry.create(Longs.toByteArray(1000L), DataType.Amount).right.get) // token B amount
         newState.contractInfo(contractStateMapKeys(7)) shouldEqual Some(DataEntry.create(Array(0.toByte), DataType.Boolean).right.get) // swap status
       }
