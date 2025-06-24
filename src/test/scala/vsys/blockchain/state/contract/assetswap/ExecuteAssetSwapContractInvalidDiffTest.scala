@@ -59,20 +59,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -151,11 +141,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       DataType.Amount,
       DataType.Timestamp
     )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -244,20 +233,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -348,20 +327,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -458,20 +427,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the past
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -555,20 +514,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the future
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -652,19 +601,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -734,19 +674,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(1001L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -831,19 +762,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -933,19 +855,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -1041,19 +954,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the past
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -1137,19 +1041,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the future
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
@@ -1233,19 +1128,10 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the future
     )
-    createSwapType = Seq(
-      DataType.Address,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.TokenId,
-      DataType.Amount,
-      DataType.Timestamp
-    )
-    createSwap <- createSwapAssetSwapContractDataStackGen(
+    createSwap <- assetSwapCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
-      createSwapType,
       attach,
       fee,
       ts
