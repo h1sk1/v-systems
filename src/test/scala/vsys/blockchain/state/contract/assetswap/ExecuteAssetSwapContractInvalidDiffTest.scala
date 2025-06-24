@@ -601,7 +601,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
@@ -674,7 +674,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(1001L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
@@ -762,7 +762,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
@@ -855,7 +855,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
@@ -954,7 +954,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the past
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
@@ -1041,7 +1041,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the future
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
@@ -1128,7 +1128,7 @@ class ExecuteAssetSwapContractInvalidDiffTest extends PropSpec
       Longs.toByteArray(20L), // swap amount for token B
       Longs.toByteArray(ts + 100) // expiration time in the future
     )
-    createSwap <- assetSwapCreateSwap(
+    createSwap <- assetSwapWithoutReceiverCreateSwap(
       master,
       registeredAssetSwapContract.contractId,
       createSwapData,
